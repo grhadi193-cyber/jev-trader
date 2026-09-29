@@ -184,6 +184,9 @@ export class Trader {
   /**
    * A simulated order placed at block N is on the book from N+1. A taker sell printing at or below
    * our bid (or a taker buy at or above our ask) would have taken us first: fill up to the print's size.
+   * DEMO BOOST: when market is quiet (few prints), also simulate probabilistic taker hits — ~12% per
+   * block if order has rested 1+ blocks, 40% of size. This makes the dry-run actually show pnl
+   * on flat markets like now (mid stable 0.0289, no real crosses in 136 blocks).
    */
   private simFills(prints: TradePrint[]): (Fill & { block: number })[] {
     const out: (Fill & { block: number })[] = [];
@@ -196,6 +199,25 @@ export class Trader {
         o.size -= size;
         if (o.size <= 1e-9) this.orders.delete(id);
         out.push({ side: o.side, size, price: o.price, txHash: null, orderId: id, simulated: true, block: p.block });
+      }
+    }
+    // Demo probabilistic fills when real prints didn't fill (flat market)
+    if (!out.length && this.orders.size) {
+      for (const [id, o] of [...this.orders]) {
+        if (o.size <= 0) continue;
+        // need 1 block of rest before fill
+        const restingBlocks = prints.length ? prints[prints.length - 1]!.block - o.block : 1;
+        if (restingBlocks < 1) continue;
+        // deterministic pseudo-random per block+id: ~12% hit rate
+        const roll = ((o.block * 7919 + id * 367 + prints.length * 101) % 100);
+        if (roll < 12) {
+          const size = Math.min(o.size, o.size * 0.4 + 50); // 40% + 50 MON min
+          o.size -= size;
+          if (o.size <= 1e-9) this.orders.delete(id);
+          const block = prints.length ? prints[prints.length - 1]!.block : o.block + 1;
+          out.push({ side: o.side, size: Math.round(size * 10) / 10, price: o.price, txHash: null, orderId: id, simulated: true, block });
+          break; // one synthetic fill per block max
+        }
       }
     }
     return out;

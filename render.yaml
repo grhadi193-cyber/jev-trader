@@ -39,7 +39,7 @@ services:
       - key: MAX_POSITION_MON
         value: "2500"
       - key: QUOTE_INSIDE_TICKS
-        value: "0"
+        value: "1"
       - key: BANKROLL_USD
         value: "100"
       # PRIVATE_KEY is intentionally NOT defined — demo is dry-run only (beatapi.io free Jev, no balance needed)
