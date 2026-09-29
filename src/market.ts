@@ -49,6 +49,9 @@ export interface Fill {
   txHash: string | null; // the taker's transaction
   orderId: number;
   simulated: boolean;
+  feeUsd?: number; // Kuru fee in USD (notional * feeBps / 10000)
+  feeBps?: number;
+  isTaker?: boolean; // true = we took (exit), false = we made (passive)
 }
 
 export interface QuoteResult { block: number; quote: Quote; canceled: number[] }
@@ -86,8 +89,17 @@ export class Market {
   private get sizeDec() { return log10(this.params.sizePrecision); }
   private get tickUnits() { return Number(this.params.tickSize.toString()); }
 
+  get takerFeeBps(): number {
+    try { return Number((this.params as any).takerFeeBps?.toString() ?? config.kuruTakerFeeBps); } catch { return config.kuruTakerFeeBps; }
+  }
+  get makerFeeBps(): number {
+    try { return Number((this.params as any).makerFeeBps?.toString() ?? config.kuruMakerFeeBps); } catch { return config.kuruMakerFeeBps; }
+  }
+  get fees() { return { taker: this.takerFeeBps, maker: this.makerFeeBps }; }
+
   async init() {
     this.params = await Kuru.ParamFetcher.getMarketParams(this.provider, config.market);
+    console.log(`market fees · taker ${this.takerFeeBps} bps (${(this.takerFeeBps/100).toFixed(2)}%) · maker ${this.makerFeeBps} bps (${(this.makerFeeBps/100).toFixed(2)}%) · tick ${this.tickUnits} · priceDec ${this.priceDec} sizeDec ${this.sizeDec}`);
     await this.refresh();
     if (!this.wallet) return;
     await this.resyncNonce();

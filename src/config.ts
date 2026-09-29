@@ -31,6 +31,9 @@ export const config = {
   model: env("MODEL", "mock") as "mock" | "jev" | "printer",
   jevModelId: env("JEV_MODEL_ID", "jev-latest")!,
   jevUsdPerMTok: 0.042,
+  // Kuru fees — per-market, fixed at creation; read live from chain via getMarketParams (takerFeeBps/makerFeeBps), env overrides fallback for sim
+  kuruTakerFeeBps: Number(env("KURU_TAKER_FEE_BPS", "30")), // 0.30% — example from Kuru SDK (MON-USDC likely similar)
+  kuruMakerFeeBps: Number(env("KURU_MAKER_FEE_BPS", "10")), // 0.10% — maker
   // Money printer / God mode — creative experimental strategy
   moneyPrinter: env("MONEY_PRINTER") === "true" || env("GOD_MODE") === "true" || env("MODEL") === "printer",
   // Base URL for Jev API — defaults to TypeSafe, override for free BeatAPI:

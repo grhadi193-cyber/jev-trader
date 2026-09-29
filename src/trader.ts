@@ -37,6 +37,11 @@ export interface Totals {
   jevUsd: number;
   gasMon: number;
   gasUsd: number;
+  // Kuru fees — REAL, per-fill, maker/taker
+  kuruFeesUsd: number; // total
+  kuruMakerFeesUsd: number;
+  kuruTakerFeesUsd: number;
+  totalFeesUsd: number; // gasUsd + kuruFeesUsd + jevUsd (for display)
   realizedUsd: number;
   pnlUsd: number;
   pnlMon: number;
@@ -69,7 +74,7 @@ export class Trader {
   private position = { mon: 0, costUsd: 0 }; // signed inventory and its cost basis
   private entryBlock = 0;
   private peakPnlPct = 0;
-  private totals: Totals = { blocks: 0, decisions: 0, quotes: 0, fills: 0, reverted: 0, lateBlocks: 0, jevUsd: 0, gasMon: 0, gasUsd: 0, realizedUsd: 0, pnlUsd: 0, pnlMon: 0, pnlPct: 0 };
+  private totals: Totals = { blocks: 0, decisions: 0, quotes: 0, fills: 0, reverted: 0, lateBlocks: 0, jevUsd: 0, gasMon: 0, gasUsd: 0, kuruFeesUsd: 0, kuruMakerFeesUsd: 0, kuruTakerFeesUsd: 0, totalFeesUsd: 0, realizedUsd: 0, pnlUsd: 0, pnlMon: 0, pnlPct: 0 };
 
   constructor(
     private market: Market,
@@ -194,7 +199,8 @@ export class Trader {
       const o = this.orders.get(f.orderId);
       if (f.updatedSize <= 0) this.orders.delete(f.orderId);
       else if (o) o.size = f.updatedSize;
-      out.push({ side: f.side, size: f.size, price: f.price, txHash: f.txHash, orderId: f.orderId, simulated: false, block: f.block });
+      // maker fill: our limit was hit → maker fee
+      out.push({ side: f.side, size: f.size, price: f.price, txHash: f.txHash, orderId: f.orderId, simulated: false, block: f.block, isTaker: false } as any);
     }
     return out;
   }
@@ -216,7 +222,7 @@ export class Trader {
         const size = Math.min(o.size, p.size);
         o.size -= size;
         if (o.size <= 1e-9) this.orders.delete(id);
-        out.push({ side: o.side, size, price: o.price, txHash: null, orderId: id, simulated: true, block: p.block });
+        out.push({ side: o.side, size, price: o.price, txHash: null, orderId: id, simulated: true, block: p.block, isTaker: false } as any);
       }
     }
     // Demo probabilistic fills when real prints didn't fill (flat market)
@@ -233,7 +239,7 @@ export class Trader {
           o.size -= size;
           if (o.size <= 1e-9) this.orders.delete(id);
           const block = prints.length ? prints[prints.length - 1]!.block : o.block + 1;
-          out.push({ side: o.side, size: Math.round(size * 10) / 10, price: o.price, txHash: null, orderId: id, simulated: true, block });
+          out.push({ side: o.side, size: Math.round(size * 10) / 10, price: o.price, txHash: null, orderId: id, simulated: true, block, isTaker: false } as any);
           break; // one synthetic fill per block max
         }
       }
@@ -286,15 +292,25 @@ export class Trader {
 
   private applyFill(f: Fill) {
     if (f.size <= 0) return;
+    // --- REAL KURU FEE (per fill) ---
+    const isTaker = (f as any).isTaker === true;
+    const feeBps = isTaker ? (this.market.takerFeeBps ?? config.kuruTakerFeeBps) : (this.market.makerFeeBps ?? config.kuruMakerFeeBps);
+    const feeUsd = f.size * f.price * feeBps / 10000;
+    (f as any).feeUsd = feeUsd; (f as any).feeBps = feeBps;
+    this.totals.kuruFeesUsd += feeUsd;
+    if (isTaker) this.totals.kuruTakerFeesUsd += feeUsd; else this.totals.kuruMakerFeesUsd += feeUsd;
+
     const wasFlat = this.position.mon === 0;
     const signed = f.side === "buy" ? f.size : -f.size;
     const p = this.position;
     if (p.mon === 0 || Math.sign(p.mon) === Math.sign(signed)) {
       p.costUsd += signed * f.price; // adding to position
+      // For new position, amortize fee into cost? No, fee is separate from entry price, but we track as fee, not cost basis
+      // We keep fee separate, pnl will deduct it globally, not per entry
     } else {
       const closing = Math.min(Math.abs(signed), Math.abs(p.mon)) * Math.sign(signed);
       const entry = p.costUsd / p.mon;
-      this.totals.realizedUsd += -closing * (f.price - entry); // closing part realizes pnl
+      this.totals.realizedUsd += -closing * (f.price - entry); // closing part realizes pnl (gross, before fees)
       p.costUsd += closing * entry;
       const remainder = signed - closing;
       p.costUsd += remainder * f.price; // any flip opens the other way
@@ -329,7 +345,7 @@ export class Trader {
     const size = Math.abs(this.position.mon);
     const holdBlocks = this.entryBlock ? block - this.entryBlock : 1;
     const pnlUsd = isLong ? size * (exitPrice - entry) : size * (entry - exitPrice);
-    const fill: Fill & { block: number } = { side: exitSide, size, price: exitPrice, txHash: null, orderId: -999, simulated: true, block };
+    const fill: Fill & { block: number } = { side: exitSide, size, price: exitPrice, txHash: null, orderId: -999, simulated: true, block, isTaker: true } as any;
     console.log(`#${block} EXIT ${reason} ${isLong ? "LONG" : "SHORT"} ${size.toFixed(0)} @ ${exitPrice.toFixed(6)} entry ${entry.toFixed(6)} pnl ${pnlPct.toFixed(2)}% peak ${this.peakPnlPct.toFixed(2)}%`);
     // clear resting (we're taking, not making)
     this.orders.clear();
@@ -349,8 +365,10 @@ export class Trader {
   private emit(block: number, book: Book, decision: Decision | null, quote: Quote | null, late: boolean, timing?: Timing) {
     const t = this.totals;
     t.gasUsd = t.gasMon * book.mid;
+    // totalFees = gas + kuru maker/taker + jev (jev is API cost, not on-chain but we show)
+    t.totalFeesUsd = t.gasUsd + t.kuruFeesUsd + t.jevUsd;
     const unrealized = this.unrealizedUsd(book.mid);
-    t.pnlUsd = t.realizedUsd + unrealized - t.gasUsd;
+    t.pnlUsd = t.realizedUsd + unrealized - t.gasUsd - t.kuruFeesUsd;
     t.pnlMon = t.pnlUsd / book.mid;
     t.pnlPct = (t.pnlUsd / getRisk().bankrollUsd) * 100;
     const size = Math.abs(this.position.mon);
@@ -366,7 +384,7 @@ export class Trader {
         side: this.position.mon > 0 ? "long" : this.position.mon < 0 ? "short" : "flat",
         size, entryPrice: this.entryPrice(), unrealizedUsd: round(unrealized, 4), unrealizedMon: round(unrealized / book.mid, 4),
       },
-      totals: { ...t, jevUsd: round(t.jevUsd, 6), gasMon: round(t.gasMon, 6), gasUsd: round(t.gasUsd, 6), realizedUsd: round(t.realizedUsd, 4), pnlUsd: round(t.pnlUsd, 4), pnlMon: round(t.pnlMon, 4), pnlPct: round(t.pnlPct, 3) },
+      totals: { ...t, jevUsd: round(t.jevUsd, 6), gasMon: round(t.gasMon, 6), gasUsd: round(t.gasUsd, 6), kuruFeesUsd: round(t.kuruFeesUsd, 6), kuruMakerFeesUsd: round(t.kuruMakerFeesUsd, 6), kuruTakerFeesUsd: round(t.kuruTakerFeesUsd, 6), totalFeesUsd: round(t.totalFeesUsd, 6), realizedUsd: round(t.realizedUsd, 4), pnlUsd: round(t.pnlUsd, 4), pnlMon: round(t.pnlMon, 4), pnlPct: round(t.pnlPct, 3) },
     };
     this.history.push(event);
     if (this.history.length > config.historySize) this.history.shift();
@@ -383,7 +401,10 @@ function aggregate(fills: Fill[]): Fill {
   const same = fills.filter((f) => f.side === side);
   const size = same.reduce((s, f) => s + f.size, 0);
   const price = same.reduce((s, f) => s + f.size * f.price, 0) / size;
-  return { side, size: round(size, 4), price, txHash: same[0]!.txHash, orderId: same[0]!.orderId, simulated: same[0]!.simulated };
+  const feeUsd = same.reduce((s, f) => s + ((f as any).feeUsd ?? f.size * f.price * ((f as any).feeBps ?? 10) / 10000), 0);
+  const feeBps = same[0] ? (same[0] as any).feeBps ?? 10 : 10;
+  const isTaker = (same[0] as any)?.isTaker ?? false;
+  return { side, size: round(size, 4), price, txHash: same[0]!.txHash, orderId: same[0]!.orderId, simulated: same[0]!.simulated, feeUsd: round(feeUsd, 6), feeBps, isTaker } as Fill;
 }
 
 const round = (x: number, d: number) => Math.round(x * 10 ** d) / 10 ** d;

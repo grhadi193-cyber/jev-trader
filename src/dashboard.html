@@ -175,7 +175,7 @@ body::after{
     <div class="stat"><label>Fills</label><strong id="sFills">—</strong><small id="sFillsSub">simulated</small></div>
     <div class="stat glow-green" id="pnlCard"><label>P&L</label><strong id="sPnl">—</strong><small id="sPnlSub">—</small></div>
     <div class="stat"><label>Position</label><strong id="sPos">—</strong><small id="sPosSub">—</small></div>
-    <div class="stat"><label>Jev Cost / Gas</label><strong id="sJev">—</strong><small id="sGas">—</small></div>
+    <div class="stat"><label>Fees // Real</label><strong id="sFees">—</strong><small id="sFeesSub" style="font-size:9px">—</small></div>
   </div>
 
   <div class="main">
@@ -319,7 +319,7 @@ body::after{
   </div>
 
   <div class="foot">
-    <strong>⚠️ EXPERIMENTAL DRY-RUN ONLY — BEATAPI FREE JEV + GOD PRINTER</strong> — No real transactions. This printer is <b>HIGH RISK</b> creative logic (hold 52% threshold, 5% chaos flip, 500 MON/trade, 2500 max). Not financial advice. Past sim ≠ future profit. Watch it, don't trust it.
+    <strong>⚠️ EXPERIMENTAL DRY-RUN ONLY — REAL FEES SIMULATED</strong> — No real transactions, but <b>کارمزد کاملا واقعی</b>: Kuru taker <span id="footTaker">30</span> bps (0.30%) / maker <span id="footMaker">10</span> bps (0.10%) از خود چین (getMarketParams) + Monad gasLimit×gasPrice + Jev API cost — همه از PnL کم میشه. PnL که میبینی <b>خالص</b> بعد کسر کارمزدهاست. Not financial advice.
   </div>
 </div>
 
@@ -355,8 +355,10 @@ function renderStats(){
   $("#sPos").textContent = pos.side==="flat" ? "FLAT" : pos.side.toUpperCase()+" "+fmtMon(pos.size,0);
   $("#sPos").style.color = pos.side==="long" ? "var(--green)" : pos.side==="short" ? "var(--red)" : "var(--muted)";
   $("#sPosSub").textContent = pos.entryPrice ? "entry "+fmtPrice(pos.entryPrice)+" • uPnL "+Number(pos.unrealizedUsd).toFixed(4) : "no position";
-  $("#sJev").textContent = "$"+Number(t.jevUsd).toFixed(4);
-  $("#sGas").textContent = Number(t.gasMon).toFixed(3)+" MON gas";
+  const feeTotal = Number(t.totalFeesUsd||0), kuru = Number(t.kuruFeesUsd||0), gas = Number(t.gasUsd||0), jev = Number(t.jevUsd||0);
+  $("#sFees").textContent = "$"+feeTotal.toFixed(4);
+  $("#sFees").style.color = feeTotal>0?"var(--amber)":"var(--muted)";
+  $("#sFeesSub").textContent = `kuru $${kuru.toFixed(4)} (${(t.kuruMakerFeesUsd||0).toFixed(3)}M/${(t.kuruTakerFeesUsd||0).toFixed(3)}T) • gas $${gas.toFixed(4)} • jev $${jev.toFixed(4)}`;
   $("#blockPill").textContent = "block "+t.blocks+" • #"+latest.block;
   $("#priceBig").textContent = fmtPrice(latest.mid);
   $("#priceSub").textContent = "mid • bid "+fmtPrice(latest.bestBid)+" / ask "+fmtPrice(latest.bestAsk)+" • spread "+Number(latest.spreadBps).toFixed(1)+"bps";
@@ -410,7 +412,8 @@ function renderFeed(){
   $("#tapeCount").textContent = fills.length+" fills";
   fills.forEach(e=>{
     const r=document.createElement("div"); r.className="row";
-    r.innerHTML = `<span class="mono" style="color:var(--dim)">#${e.block}</span><span class="side ${e.fill.side}">${e.fill.side.toUpperCase()}</span><span>${fmtMon(e.fill.size,0)} @ ${fmtPrice(e.fill.price)}</span><span class="mono" style="color:${e.totals.pnlUsd>=0?'var(--green)':'var(--red)'}">${e.totals.pnlUsd>=0?'+':''}${Number(e.totals.pnlUsd).toFixed(3)}</span>`;
+    const fee = e.fill.feeUsd ? ` <span style="font-size:9px;color:var(--amber)">fee $${Number(e.fill.feeUsd).toFixed(3)} ${(e.fill.isTaker?"T":"M")} ${e.fill.feeBps}bps</span>` : "";
+    r.innerHTML = `<span class="mono" style="color:var(--dim)">#${e.block}</span><span class="side ${e.fill.side}">${e.fill.side.toUpperCase()}</span><span>${fmtMon(e.fill.size,0)} @ ${fmtPrice(e.fill.price)}${fee}</span><span class="mono" style="color:${e.totals.pnlUsd>=0?'var(--green)':'var(--red)'}">${e.totals.pnlUsd>=0?'+':''}${Number(e.totals.pnlUsd).toFixed(3)}</span>`;
     rows.appendChild(r);
   });
   if(fills.length===0) rows.innerHTML='<div class="row"><span style="grid-column:1/-1;color:var(--muted);text-align:center;padding:16px">no fills yet — waiting for print to cross</span></div>';
