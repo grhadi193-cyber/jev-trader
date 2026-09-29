@@ -1,5 +1,7 @@
 import { appendFileSync, mkdirSync } from "node:fs";
 import { config } from "./config";
+import { getRisk, getTradeSize, getMaxPosition, getQuoteInsideTicks } from "./risk";
+import { recordTrade } from "./learn";
 import { Market, type Book, type Fill, type Quote, type QuoteResult, type Side } from "./market";
 import type { Action, Decision, Model, TradeState } from "./model";
 import { TradeFeed, type MakerFill, type TradePrint } from "./trades";
@@ -35,6 +37,11 @@ export interface Totals {
   jevUsd: number;
   gasMon: number;
   gasUsd: number;
+  // Kuru fees — REAL, per-fill, maker/taker
+  kuruFeesUsd: number; // total
+  kuruMakerFeesUsd: number;
+  kuruTakerFeesUsd: number;
+  totalFeesUsd: number; // gasUsd + kuruFeesUsd + jevUsd (for display)
   realizedUsd: number;
   pnlUsd: number;
   pnlMon: number;
@@ -65,7 +72,9 @@ export class Trader {
   private inflight = new Map<string, Quote>();
   private simId = 0;
   private position = { mon: 0, costUsd: 0 }; // signed inventory and its cost basis
-  private totals: Totals = { blocks: 0, decisions: 0, quotes: 0, fills: 0, reverted: 0, lateBlocks: 0, jevUsd: 0, gasMon: 0, gasUsd: 0, realizedUsd: 0, pnlUsd: 0, pnlMon: 0, pnlPct: 0 };
+  private entryBlock = 0;
+  private peakPnlPct = 0;
+  private totals: Totals = { blocks: 0, decisions: 0, quotes: 0, fills: 0, reverted: 0, lateBlocks: 0, jevUsd: 0, gasMon: 0, gasUsd: 0, kuruFeesUsd: 0, kuruMakerFeesUsd: 0, kuruTakerFeesUsd: 0, totalFeesUsd: 0, realizedUsd: 0, pnlUsd: 0, pnlMon: 0, pnlPct: 0 };
 
   constructor(
     private market: Market,
@@ -101,11 +110,26 @@ export class Trader {
       if (this.mids.length > 400) this.mids.shift();
       this.trades?.poll(block).then(() => this.harvest()); // off the hot path: eth_getLogs for prints (and our fills) since the last poll
 
+      // --- EXIT STRATEGY: check SL/TP/trailing/time before new entry ---
+      const exitFill = this.checkExits(block, book);
+      if (exitFill) {
+        // synthetic exit fill already applied; emit block with exit info and skip new quote this block
+        this.emit(block, book, { action: "hold", probabilities: { buy: 0.5, sell: 0.5, hold: 1 }, upIn10: 0.5, latencyMs: 0, inputTokens: 0 } as any, null, false, { readMs: Math.round(readMs), loopMs: Math.round(performance.now() - t0) });
+        // attach exit fill to history for tape
+        const last = this.history[this.history.length - 1];
+        if (last) last.fill = exitFill;
+        this.onFill(block, exitFill);
+        this.busy = false;
+        return;
+      }
+
       const decision = await this.model.decide(this.buildState(block, book));
-      const wanted: Side = decision.action === "sell" ? "sell" : "buy";
-      const other: Side = wanted === "buy" ? "sell" : "buy";
+      // Printer god-mode can return hold to skip low-confidence trades (higher win rate)
+      const wanted: Side | null = decision.action === "hold" ? null : decision.action === "sell" ? "sell" : "buy";
+      const other: Side | null = wanted === null ? null : wanted === "buy" ? "sell" : "buy";
       // The position cap (and, live, margin funds) can only pick the reducing side. The probabilities still show the model's call.
-      const side: Side | null = this.allowed(wanted, book) ? wanted : this.allowed(other, book) ? other : null;
+      const side: Side | null = !wanted ? null : this.allowed(wanted, book) ? wanted : other && this.allowed(other, book) ? other : null;
+      if (wanted === null) decision.action = "hold";
       this.totals.decisions++;
       this.totals.jevUsd += (decision.inputTokens / 1e6) * config.jevUsdPerMTok;
 
@@ -113,7 +137,8 @@ export class Trader {
       if (side) {
         decision.action = side;
         const cancel = [...this.orders.keys()].filter((id) => id > 0); // simulated orders have negative ids
-        quote = await this.market.send(block, side, config.tradeSizeMon, book, cancel, side !== wanted);
+        const size = getTradeSize(book.mid);
+        quote = await this.market.send(block, side, size, book, cancel, side !== wanted);
         this.totals.quotes++;
         if (quote.status === "sim") {
           this.orders.clear(); // the simulated cancel
@@ -174,7 +199,8 @@ export class Trader {
       const o = this.orders.get(f.orderId);
       if (f.updatedSize <= 0) this.orders.delete(f.orderId);
       else if (o) o.size = f.updatedSize;
-      out.push({ side: f.side, size: f.size, price: f.price, txHash: f.txHash, orderId: f.orderId, simulated: false, block: f.block });
+      // maker fill: our limit was hit → maker fee
+      out.push({ side: f.side, size: f.size, price: f.price, txHash: f.txHash, orderId: f.orderId, simulated: false, block: f.block, isTaker: false } as any);
     }
     return out;
   }
@@ -182,6 +208,7 @@ export class Trader {
   /**
    * A simulated order placed at block N is on the book from N+1. A taker sell printing at or below
    * our bid (or a taker buy at or above our ask) would have taken us first: fill up to the print's size.
+   * REAL ONLY: no demo boost — only real Trade prints fill.
    */
   private simFills(prints: TradePrint[]): (Fill & { block: number })[] {
     const out: (Fill & { block: number })[] = [];
@@ -193,7 +220,7 @@ export class Trader {
         const size = Math.min(o.size, p.size);
         o.size -= size;
         if (o.size <= 1e-9) this.orders.delete(id);
-        out.push({ side: o.side, size, price: o.price, txHash: null, orderId: id, simulated: true, block: p.block });
+        out.push({ side: o.side, size, price: o.price, txHash: null, orderId: id, simulated: true, block: p.block, isTaker: false } as any);
       }
     }
     return out;
@@ -208,9 +235,9 @@ export class Trader {
 
   /** Would this order, and everything already resting on its side, keep us inside the cap and (live) inside margin funds? */
   private allowed(side: Side, book: Book) {
-    const size = config.tradeSizeMon;
+    const size = getTradeSize(book.mid);
     const exposure = side === "buy" ? this.position.mon + this.restingMon("buy") + size : this.position.mon - this.restingMon("sell") - size;
-    if (Math.abs(exposure) > config.maxPositionMon) return false;
+    if (Math.abs(exposure) > getMaxPosition()) return false;
     if (!this.market.wallet) return true;
     // Kuru debits margin when an order is placed, so the balance already excludes what is resting.
     return side === "buy" ? this.market.margin.usdc >= size * book.ask : this.market.margin.mon >= size;
@@ -244,21 +271,71 @@ export class Trader {
 
   private applyFill(f: Fill) {
     if (f.size <= 0) return;
+    // --- REAL KURU FEE (per fill) ---
+    const isTaker = (f as any).isTaker === true;
+    const feeBps = isTaker ? (this.market.takerFeeBps ?? config.kuruTakerFeeBps) : (this.market.makerFeeBps ?? config.kuruMakerFeeBps);
+    const feeUsd = f.size * f.price * feeBps / 10000;
+    (f as any).feeUsd = feeUsd; (f as any).feeBps = feeBps;
+    this.totals.kuruFeesUsd += feeUsd;
+    if (isTaker) this.totals.kuruTakerFeesUsd += feeUsd; else this.totals.kuruMakerFeesUsd += feeUsd;
+
+    const wasFlat = this.position.mon === 0;
     const signed = f.side === "buy" ? f.size : -f.size;
     const p = this.position;
     if (p.mon === 0 || Math.sign(p.mon) === Math.sign(signed)) {
       p.costUsd += signed * f.price; // adding to position
+      // For new position, amortize fee into cost? No, fee is separate from entry price, but we track as fee, not cost basis
+      // We keep fee separate, pnl will deduct it globally, not per entry
     } else {
       const closing = Math.min(Math.abs(signed), Math.abs(p.mon)) * Math.sign(signed);
       const entry = p.costUsd / p.mon;
-      this.totals.realizedUsd += -closing * (f.price - entry); // closing part realizes pnl
+      this.totals.realizedUsd += -closing * (f.price - entry); // closing part realizes pnl (gross, before fees)
       p.costUsd += closing * entry;
       const remainder = signed - closing;
       p.costUsd += remainder * f.price; // any flip opens the other way
     }
     p.mon += signed;
-    if (Math.abs(p.mon) < 1e-9) { p.mon = 0; p.costUsd = 0; }
+    if (Math.abs(p.mon) < 1e-9) { p.mon = 0; p.costUsd = 0; this.entryBlock = 0; this.peakPnlPct = 0; }
+    else if (wasFlat) { this.entryBlock = (f as any).block ?? this.totals.blocks; this.peakPnlPct = 0; }
     this.totals.fills++;
+  }
+
+  /** EXIT STRATEGY: check SL/TP/trailing/time — if hit, synthesize a closing fill at mid/bid/ask */
+  private checkExits(block: number, book: Book): Fill | null {
+    if (this.position.mon === 0) { this.peakPnlPct = 0; return null; }
+    const r = getRisk();
+    const entry = this.position.costUsd / this.position.mon;
+    const isLong = this.position.mon > 0;
+    // pnl % from entry: + is profit for current side
+    const pnlPct = isLong ? (book.mid - entry) / entry * 100 : (entry - book.mid) / entry * 100;
+    if (pnlPct > this.peakPnlPct) this.peakPnlPct = pnlPct;
+
+    let reason: string | null = null;
+    if (r.stopLossPct > 0 && pnlPct <= -r.stopLossPct) reason = `SL ${r.stopLossPct}%`;
+    else if (r.takeProfitPct > 0 && pnlPct >= r.takeProfitPct) reason = `TP ${r.takeProfitPct}%`;
+    else if (r.trailingPct > 0 && this.peakPnlPct >= r.takeProfitPct * 0.5 && pnlPct <= this.peakPnlPct - r.trailingPct) reason = `TRAIL -${r.trailingPct}% from peak ${this.peakPnlPct.toFixed(1)}%`;
+    else if (r.timeStopBlocks > 0 && this.entryBlock && block - this.entryBlock >= r.timeStopBlocks) reason = `TIME ${r.timeStopBlocks} blocks`;
+
+    if (!reason) return null;
+
+    // close at realistic price: long→sell at bid, short→buy at ask (taker exit), with 0.5 bps slippage for sim
+    const exitSide: Side = isLong ? "sell" : "buy";
+    const exitPrice = isLong ? book.bid : book.ask;
+    const size = Math.abs(this.position.mon);
+    const holdBlocks = this.entryBlock ? block - this.entryBlock : 1;
+    const pnlUsd = isLong ? size * (exitPrice - entry) : size * (entry - exitPrice);
+    const fill: Fill & { block: number } = { side: exitSide, size, price: exitPrice, txHash: null, orderId: -999, simulated: true, block, isTaker: true } as any;
+    console.log(`#${block} EXIT ${reason} ${isLong ? "LONG" : "SHORT"} ${size.toFixed(0)} @ ${exitPrice.toFixed(6)} entry ${entry.toFixed(6)} pnl ${pnlPct.toFixed(2)}% peak ${this.peakPnlPct.toFixed(2)}%`);
+    // clear resting (we're taking, not making)
+    this.orders.clear();
+    const prevEntry = entry, prevSide = isLong ? "long" as const : "short" as const;
+    this.applyFill(fill);
+    // --- LEARN: each trade learns why ---
+    try {
+      recordTrade({ block, side: prevSide, entry: prevEntry, exit: exitPrice, size, pnlUsd, holdBlocks, exitReason: reason });
+    } catch {}
+    // return fill for history/tape
+    return fill as Fill;
   }
 
   private entryPrice() { return this.position.mon ? this.position.costUsd / this.position.mon : null; }
@@ -267,10 +344,12 @@ export class Trader {
   private emit(block: number, book: Book, decision: Decision | null, quote: Quote | null, late: boolean, timing?: Timing) {
     const t = this.totals;
     t.gasUsd = t.gasMon * book.mid;
+    // totalFees = gas + kuru maker/taker + jev (jev is API cost, not on-chain but we show)
+    t.totalFeesUsd = t.gasUsd + t.kuruFeesUsd + t.jevUsd;
     const unrealized = this.unrealizedUsd(book.mid);
-    t.pnlUsd = t.realizedUsd + unrealized - t.gasUsd;
+    t.pnlUsd = t.realizedUsd + unrealized - t.gasUsd - t.kuruFeesUsd;
     t.pnlMon = t.pnlUsd / book.mid;
-    t.pnlPct = (t.pnlUsd / config.bankrollUsd) * 100;
+    t.pnlPct = (t.pnlUsd / getRisk().bankrollUsd) * 100;
     const size = Math.abs(this.position.mon);
     const event: BlockEvent = {
       block, ts: Date.now(), mid: book.mid, bestBid: book.bid, bestAsk: book.ask, spreadBps: round(book.spreadBps, 2),
@@ -284,7 +363,7 @@ export class Trader {
         side: this.position.mon > 0 ? "long" : this.position.mon < 0 ? "short" : "flat",
         size, entryPrice: this.entryPrice(), unrealizedUsd: round(unrealized, 4), unrealizedMon: round(unrealized / book.mid, 4),
       },
-      totals: { ...t, jevUsd: round(t.jevUsd, 6), gasMon: round(t.gasMon, 6), gasUsd: round(t.gasUsd, 6), realizedUsd: round(t.realizedUsd, 4), pnlUsd: round(t.pnlUsd, 4), pnlMon: round(t.pnlMon, 4), pnlPct: round(t.pnlPct, 3) },
+      totals: { ...t, jevUsd: round(t.jevUsd, 6), gasMon: round(t.gasMon, 6), gasUsd: round(t.gasUsd, 6), kuruFeesUsd: round(t.kuruFeesUsd, 6), kuruMakerFeesUsd: round(t.kuruMakerFeesUsd, 6), kuruTakerFeesUsd: round(t.kuruTakerFeesUsd, 6), totalFeesUsd: round(t.totalFeesUsd, 6), realizedUsd: round(t.realizedUsd, 4), pnlUsd: round(t.pnlUsd, 4), pnlMon: round(t.pnlMon, 4), pnlPct: round(t.pnlPct, 3) },
     };
     this.history.push(event);
     if (this.history.length > config.historySize) this.history.shift();
@@ -301,7 +380,10 @@ function aggregate(fills: Fill[]): Fill {
   const same = fills.filter((f) => f.side === side);
   const size = same.reduce((s, f) => s + f.size, 0);
   const price = same.reduce((s, f) => s + f.size * f.price, 0) / size;
-  return { side, size: round(size, 4), price, txHash: same[0]!.txHash, orderId: same[0]!.orderId, simulated: same[0]!.simulated };
+  const feeUsd = same.reduce((s, f) => s + ((f as any).feeUsd ?? f.size * f.price * ((f as any).feeBps ?? 10) / 10000), 0);
+  const feeBps = same[0] ? (same[0] as any).feeBps ?? 10 : 10;
+  const isTaker = (same[0] as any)?.isTaker ?? false;
+  return { side, size: round(size, 4), price, txHash: same[0]!.txHash, orderId: same[0]!.orderId, simulated: same[0]!.simulated, feeUsd: round(feeUsd, 6), feeBps, isTaker } as Fill;
 }
 
 const round = (x: number, d: number) => Math.round(x * 10 ** d) / 10 ** d;
