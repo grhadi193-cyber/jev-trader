@@ -131,11 +131,11 @@ export class PrinterModel implements Model {
     const buy = 1 / (1 + Math.exp(-signal));
     const sell = 1 - buy;
     let action: Action;
-    if (buy > 0.52) action = "buy";
-    else if (sell > 0.52) action = "sell";
-    else action = "hold";
+    if (buy > 0.505) action = "buy";
+    else if (sell > 0.505) action = "sell";
+    else action = "hold"; // almost never hold — always trades
     const probabilities = action === "hold" ? { buy: 0.5, sell: 0.5, hold: 1 } : { buy, sell, hold: 0 };
-    await Bun.sleep(20);
+    await Bun.sleep(5); // GOD FAST — was 20ms, now 5ms to kill late
     return {
       action,
       probabilities,
