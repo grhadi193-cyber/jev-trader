@@ -29,7 +29,11 @@ services:
         value: https://rpc.monad.xyz
       - key: TYPESAFE_AI_API_KEY
         sync: false
-      # --- GOD RISK SETTINGS ---
+      # --- GOD 10% RISK SETTINGS — professional small risks, god-like ---
+      # 10% per trade: BANKROLL 100 USD → 10 USD per trade → ~500 MON @ ~0.02 MON/USDC
+      # Higher timeframe: HORIZON 300 blocks = 90s (was 100=30s) → more time to decide right
+      - key: HORIZON_BLOCKS
+        value: "300"
       - key: TRADE_SIZE_MON
         value: "500"
       - key: MAX_POSITION_MON

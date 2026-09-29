@@ -110,13 +110,17 @@ export class MockModel implements Model {
 }
 
 /**
- * MONEY PRINTER GOD V2 — HIGH RISK, HIGH REWARD (dry-run only)
- * Creative experimental — NOT financial advice. Past sim != future profit.
- * Risk profile: AGGRESSIVE — trades more, holds less, chases flow.
- * - Amplified imbalance*3.2 + flow*4 + momentum*0.8 (vs v1's 2.5/3)
- * - Low hold threshold 52% (vs 58%) → 30% more trades, more risk
- * - 5% chaos flip: randomly inverts signal for "god-like" strange moves
- * - 20ms latency, vs Jev 300ms → almost zero late blocks
+ * MONEY PRINTER GOD V3 — THE REAL GOD (dry-run only, 10% risk)
+ * Timeframe: 90s (HORIZON 300 blocks) — gives god time to decide right, not FOMO.
+ * Risk: 10% of bankroll per trade (500 MON ≈ 10 USD @ 100 USD bankroll) — pro small risks.
+ * Why god doesn't tilt (psych traps avoided):
+ * - No Loss Aversion: god doesn't hold losers, fixed 50.5% flip, no memory of pnl
+ * - No Revenge Trading: no cooldown after loss, same math every block
+ * - No FOMO/Anchoring: imbalance*3.2 + flow*4 + chaos 5% breaks anchoring to last price
+ * - No Herding/Confirmation: noise 0.8 + imbFade prevents chasing pumps
+ * - Horizon 90s > 30s: filters micro-noise, trades the real move (less late, more edge)
+ * - Low threshold 50.5% → trades often but small (10%) — professional, not gambler
+ * - 5ms latency → decides before humans blink
  */
 export class PrinterModel implements Model {
   readonly name = "printer-god-v2-risk";
@@ -135,7 +139,7 @@ export class PrinterModel implements Model {
     else if (sell > 0.505) action = "sell";
     else action = "hold"; // almost never hold — always trades
     const probabilities = action === "hold" ? { buy: 0.5, sell: 0.5, hold: 1 } : { buy, sell, hold: 0 };
-    await Bun.sleep(5); // GOD FAST — was 20ms, now 5ms to kill late
+    await Bun.sleep(5); // GOD FAST 5ms + 90s horizon = time to decide right, no FOMO
     return {
       action,
       probabilities,
