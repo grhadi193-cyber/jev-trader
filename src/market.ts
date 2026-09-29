@@ -99,7 +99,9 @@ export class Market {
 
   async init() {
     this.params = await Kuru.ParamFetcher.getMarketParams(this.provider, config.market);
-    console.log(`market fees · taker ${this.takerFeeBps} bps (${(this.takerFeeBps/100).toFixed(2)}%) · maker ${this.makerFeeBps} bps (${(this.makerFeeBps/100).toFixed(2)}%) · tick ${this.tickUnits} · priceDec ${this.priceDec} sizeDec ${this.sizeDec}`);
+    // sync REAL exchange fees to config so /api/fees and trader use exact chain values
+    try { (config as any).kuruTakerFeeBps = Number((this.params as any).takerFeeBps.toString()); (config as any).kuruMakerFeeBps = Number((this.params as any).makerFeeBps.toString()); } catch {}
+    console.log(`market fees · REAL EXCHANGE · taker ${this.takerFeeBps} bps (${(this.takerFeeBps/100).toFixed(2)}%) · maker ${this.makerFeeBps} bps (${(this.makerFeeBps/100).toFixed(2)}%) · tick ${this.tickUnits} · priceDec ${this.priceDec} sizeDec ${this.sizeDec}`);
     await this.refresh();
     if (!this.wallet) return;
     await this.resyncNonce();

@@ -30,6 +30,7 @@ export function startServer(meta: Meta, history: () => BlockEvent[]) {
       if (pathname === "/") return json({ ...meta, latest: history().at(-1) ?? null, risk: getRisk() });
       if (pathname === "/history") return json(history());
       if (pathname === "/api/risk" && req.method === "GET") return json(getRisk());
+      if (pathname === "/api/fees" && req.method === "GET") return json({ takerFeeBps: config.kuruTakerFeeBps, makerFeeBps: config.kuruMakerFeeBps, takerPct: config.kuruTakerFeeBps/100, makerPct: config.kuruMakerFeeBps/100, source: "Kuru getMarketParams on-chain (MON-USDC 0x065C...)", market: config.market });
       if (pathname === "/api/learning" && req.method === "GET") return json(getLearn());
       if (pathname === "/api/risk" && req.method === "POST") {
         try {

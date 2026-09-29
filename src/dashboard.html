@@ -319,7 +319,7 @@ body::after{
   </div>
 
   <div class="foot">
-    <strong>⚠️ EXPERIMENTAL DRY-RUN ONLY — REAL FEES SIMULATED</strong> — No real transactions, but <b>کارمزد کاملا واقعی</b>: Kuru taker <span id="footTaker">30</span> bps (0.30%) / maker <span id="footMaker">10</span> bps (0.10%) از خود چین (getMarketParams) + Monad gasLimit×gasPrice + Jev API cost — همه از PnL کم میشه. PnL که میبینی <b>خالص</b> بعد کسر کارمزدهاست. Not financial advice.
+    <strong>⚠️ EXPERIMENTAL DRY-RUN ONLY — REAL EXCHANGE FEE 100% از صرافی</strong> — کارمزد صرافی مستقیم از خود چین خونده میشه <b>Kuru getMarketParams</b> برای MON-USDC (<span id="footMarket" style="font-family:JetBrains Mono;font-size:10px">0x065C...</span>): taker <b><span id="footTaker">30</span> bps (<span id="footTakerPct">0.30</span>%)</b> / maker <b><span id="footMaker">10</span> bps (<span id="footMakerPct">0.10</span>%)</b> — هر fill دقیقا با همین feeBps حساب میشه (maker موقع limit hit، taker موقع exit SL/TP) + Monad gasLimit×gasPrice + Jev. PnL که میبینی <b>خالص واقعی</b> بعد کسر کارمزد صرافیه. <a href="/api/fees" target="_blank" style="color:var(--cyan)">/api/fees</a>
   </div>
 </div>
 
@@ -667,6 +667,8 @@ document.addEventListener("input", (e)=>{
 
 async function init(){
   try{
+    // real exchange fees from chain
+    try{ const f=await (await fetch(API+"/api/fees")).json(); $("#footTaker").textContent=f.takerFeeBps; $("#footTakerPct").textContent=(f.takerFeeBps/100).toFixed(2); $("#footMaker").textContent=f.makerFeeBps; $("#footMakerPct").textContent=(f.makerFeeBps/100).toFixed(2); $("#footMarket").textContent=f.market.slice(0,10)+"..."; }catch{}
     const r = await fetch(API+"/history");
     const h = await r.json();
     events = Array.isArray(h)? h : [];
