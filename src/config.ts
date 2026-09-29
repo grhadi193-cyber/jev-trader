@@ -28,9 +28,11 @@ export const config = {
   pendingBlocks: 10, // give up on a tx with no receipt after this many blocks
   refreshBlocks: 200, // how often to refresh the fee estimate, margin balances and the vault check
   horizonBlocks: Number(env("HORIZON_BLOCKS", "100")), // the model is asked about the move over this many blocks (~30 s)
-  model: env("MODEL", "mock") as "mock" | "jev",
+  model: env("MODEL", "mock") as "mock" | "jev" | "printer",
   jevModelId: env("JEV_MODEL_ID", "jev-latest")!,
   jevUsdPerMTok: 0.042,
+  // Money printer / God mode — creative experimental strategy
+  moneyPrinter: env("MONEY_PRINTER") === "true" || env("GOD_MODE") === "true" || env("MODEL") === "printer",
   // Base URL for Jev API — defaults to TypeSafe, override for free BeatAPI:
   // BeatAPI free: https://api.beatapi.io/v1  (model jev-1.13-free, no balance needed)
   // Set TYPESAFE_AI_BASE_URL or JEV_BASE_URL to switch without code change.

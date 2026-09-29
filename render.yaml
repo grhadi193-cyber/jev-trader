@@ -10,7 +10,11 @@ services:
     autoDeploy: false
     envVars:
       - key: MODEL
-        value: jev
+        value: printer
+      - key: MONEY_PRINTER
+        value: "true"
+      - key: GOD_MODE
+        value: "true"
       - key: JEV_MODEL_ID
         value: jev-1.13-free
       - key: TYPESAFE_AI_BASE_URL

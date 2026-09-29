@@ -102,10 +102,12 @@ export class Trader {
       this.trades?.poll(block).then(() => this.harvest()); // off the hot path: eth_getLogs for prints (and our fills) since the last poll
 
       const decision = await this.model.decide(this.buildState(block, book));
-      const wanted: Side = decision.action === "sell" ? "sell" : "buy";
-      const other: Side = wanted === "buy" ? "sell" : "buy";
+      // Printer god-mode can return hold to skip low-confidence trades (higher win rate)
+      const wanted: Side | null = decision.action === "hold" ? null : decision.action === "sell" ? "sell" : "buy";
+      const other: Side | null = wanted === null ? null : wanted === "buy" ? "sell" : "buy";
       // The position cap (and, live, margin funds) can only pick the reducing side. The probabilities still show the model's call.
-      const side: Side | null = this.allowed(wanted, book) ? wanted : this.allowed(other, book) ? other : null;
+      const side: Side | null = !wanted ? null : this.allowed(wanted, book) ? wanted : other && this.allowed(other, book) ? other : null;
+      if (wanted === null) decision.action = "hold";
       this.totals.decisions++;
       this.totals.jevUsd += (decision.inputTokens / 1e6) * config.jevUsdPerMTok;
 

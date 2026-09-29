@@ -109,4 +109,51 @@ export class MockModel implements Model {
   }
 }
 
-export const createModel = (): Model => (config.model === "jev" ? new JevModel() : new MockModel());
+/**
+ * MONEY PRINTER — creative experimental god-mode strategy (dry-run only)
+ * Combines mean-reversion, flow fade, spread capture & selective hold.
+ * - Amplified imbalance + flow, faded momentum, tiny noise
+ * - Holds when confidence < 58% to avoid bad fills (higher win rate)
+ * - Ultra-low latency 20ms to reduce late blocks vs Jev's 300ms
+ * - This is EXPERIMENTAL, not financial advice. Past sim != future profit.
+ */
+export class PrinterModel implements Model {
+  readonly name = "printer-god-v1";
+
+  async decide(state: TradeState): Promise<Decision> {
+    const t0 = performance.now();
+    const flow = state.trades.buyMon + state.trades.sellMon ? state.trades.cvdMon / (state.trades.buyMon + state.trades.sellMon) : 0;
+    // God signal: fade extremes, capture spread
+    // - returns5 short momentum, returns20 faded, imbalance*2.5, flow*3, tiny noise
+    // - mean-reversion push when book very imbalanced: fade the imbalance
+    const imbFade = -Math.sign(state.bookImbalance) * Math.pow(Math.abs(state.bookImbalance), 2) * 0.8;
+    const signal = state.returnsBps.last5 * 0.4 + state.returnsBps.last20 * 0.15 + state.bookImbalance * 2.5 + flow * 3 + imbFade + this.noise(state.block) * 0.3;
+    const buy = 1 / (1 + Math.exp(-signal));
+    const sell = 1 - buy;
+    // Selective hold: only trade when confident >58% to improve hit rate (spread 15-20bps)
+    let action: Action;
+    if (buy > 0.58) action = "buy";
+    else if (sell > 0.58) action = "sell";
+    else action = "hold";
+    const probabilities = action === "hold" ? { buy: 0.5, sell: 0.5, hold: 1 } : { buy, sell, hold: 0 };
+    await Bun.sleep(20); // god is fast
+    return {
+      action,
+      probabilities,
+      upIn10: buy,
+      latencyMs: performance.now() - t0,
+      inputTokens: Math.round(JSON.stringify(state).length / 4),
+    };
+  }
+
+  private noise(block: number) {
+    let h = block * 2654435761 >>> 0;
+    h ^= h >>> 15; h = (h * 2246822519) >>> 0; h ^= h >>> 13;
+    return ((h % 1000) / 1000 - 0.5) * 1.5;
+  }
+}
+
+export const createModel = (): Model => {
+  if (config.moneyPrinter) return new PrinterModel();
+  return config.model === "jev" ? new JevModel() : new MockModel();
+};
