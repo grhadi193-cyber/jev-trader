@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JEV TRADER // LEARNING BRAIN — GOD EVOLVES</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#06070A;--panel:#0E1116;--panel2:#11151D;--border:#1E2533;--border2:#253044;--ink:#E6EAF2;--muted:#8A94A8;--dim:#5B657A;--purple:#7B6CF6;--cyan:#00E5CC;--green:#00FF88;--red:#FF3B5C;--amber:#FFB800;--grid:rgba(123,108,246,0.07)}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:"Space Grotesk",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.mono{font-family:"JetBrains Mono",monospace}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:linear-gradient(var(--grid) 1px, transparent 1px),linear-gradient(90deg,var(--grid) 1px, transparent 1px);background-size:32px 32px;opacity:0.6}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(1200px 600px at 50% -10%, rgba(123,108,246,0.18), transparent 60%),radial-gradient(800px 400px at 90% 30%, rgba(0,229,204,0.12), transparent 60%)}
+.wrap{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:18px 16px 24px}
+.header{display:flex;align-items:center;gap:14px;padding:12px 16px;background:linear-gradient(180deg, rgba(17,21,29,0.9), rgba(14,17,22,0.9));border:1px solid var(--border);border-radius:14px;backdrop-filter:blur(12px);box-shadow:0 8px 32px rgba(0,0,0,0.6);position:sticky;top:12px;z-index:5}
+.brand{font-weight:800;letter-spacing:0.08em;font-size:13px;display:flex;align-items:center;gap:10px}
+.brand b{font-size:15px}
+.live-dot{width:9px;height:9px;border-radius:999px;background:var(--purple);box-shadow:0 0 12px var(--purple),0 0 24px var(--purple);animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.15);opacity:0.85}}
+.pill{font-family:"JetBrains Mono",monospace;font-size:11px;padding:5px 8px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:var(--muted)}
+.badge{font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:700;padding:6px 10px;border-radius:999px;letter-spacing:0.06em}
+.badge-learn{background:linear-gradient(135deg,#7B6CF6,#00E5CC);color:white;box-shadow:0 0 16px rgba(123,108,246,0.5)}
+a.btn{font-family:"JetBrains Mono",monospace;font-size:11px;padding:7px 12px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,0.04);color:var(--ink);text-decoration:none}
+a.btn:hover{border-color:var(--purple);box-shadow:0 0 12px rgba(123,108,246,0.3)}
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:14px 0}
+@media(max-width:900px){.stats{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:560px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--border);border-radius:12px;padding:12px;position:relative;overflow:hidden}
+.stat::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;background:linear-gradient(90deg,transparent,rgba(123,108,246,0.5),transparent);opacity:0.6}
+.stat label{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--dim);font-weight:600}
+.stat strong{font-family:"JetBrains Mono",monospace;font-size:18px;font-weight:800;letter-spacing:-0.02em;display:block;margin-top:4px}
+.stat small{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--muted);display:block;margin-top:2px}
+.stat.glow-green{box-shadow:0 0 0 1px rgba(0,255,136,0.15),0 4px 24px rgba(0,255,136,0.08)}
+.stat.glow-red{box-shadow:0 0 0 1px rgba(255,59,92,0.15),0 4px 24px rgba(255,59,92,0.08)}
+.stat.glow-purple{box-shadow:0 0 0 1px rgba(123,108,246,0.2),0 4px 24px rgba(123,108,246,0.1)}
+.main{display:grid;grid-template-columns:1.2fr 0.8fr;gap:12px;align-items:start}
+@media(max-width:960px){.main{grid-template-columns:1fr}}
+.card{background:linear-gradient(180deg,rgba(16,20,28,0.9),rgba(11,14,19,0.9));border:1px solid var(--border);border-radius:14px;overflow:hidden;backdrop-filter:blur(10px);box-shadow:0 8px 32px rgba(0,0,0,0.5)}
+.card-hd{padding:12px 14px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.card-hd i{width:8px;height:8px;border-radius:999px;background:var(--purple);box-shadow:0 0 10px var(--purple)}
+.card-bd{padding:14px}
+.brainBox{background:linear-gradient(135deg,rgba(123,108,246,0.12),rgba(0,229,204,0.08));border:1px solid rgba(123,108,246,0.2);border-radius:12px;padding:14px;margin-bottom:12px;position:relative;overflow:hidden}
+.brainBox::before{content:"";position:absolute;inset:0;background:radial-gradient(400px 100px at 20% 0%, rgba(123,108,246,0.15), transparent 60%);pointer-events:none}
+.brainBox strong{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--ink);display:block;position:relative}
+.brainBox small{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);display:block;margin-top:6px;line-height:1.5;position:relative}
+.evoWrap{height:180px;position:relative;background:rgba(0,0,0,0.2);border-radius:10px;border:1px solid var(--border);overflow:hidden;margin-top:10px}
+.evoWrap canvas{position:absolute;inset:0;width:100%;height:100%}
+.tradeTable{width:100%;border-collapse:collapse;font-family:"JetBrains Mono",monospace;font-size:11px}
+.tradeTable th{font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--dim);text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--panel);z-index:1}
+.tradeTable td{padding:9px 10px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:top}
+.tradeTable tr:hover{background:rgba(123,108,246,0.05)}
+.win{color:var(--green);font-weight:700}
+.loss{color:var(--red);font-weight:700}
+.tag{font-size:10px;padding:2px 6px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,0.03);white-space:nowrap}
+.tag-win{background:rgba(0,255,136,0.12);color:var(--green);border-color:rgba(0,255,136,0.3)}
+.tag-loss{background:rgba(255,59,92,0.12);color:var(--red);border-color:rgba(255,59,92,0.3)}
+.tag-sl{background:rgba(255,59,92,0.12);color:var(--red)}
+.tag-tp{background:rgba(0,255,136,0.12);color:var(--green)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="brand"><span class="live-dot"></span> <b>JEV TRADER</b> <span style="opacity:0.6">// LEARNING BRAIN</span></div>
+    <div class="pill mono" id="blockPill">—</div>
+    <div class="pill mono">🧠 SELF-LEARNING GOD</div>
+    <div style="flex:1"></div>
+    <a class="btn" href="/dashboard">← DASHBOARD</a>
+    <div class="badge badge-learn" id="modelBadge">—</div>
+  </div>
+
+  <div class="brainBox" id="brainBox">
+    <strong id="brainTitle">🧠 مغز خدا در حال یادگیری...</strong>
+    <small id="brainText">هر معامله تحلیل میشه: چرا سود شد، چرا ضرر، کجا بهتر بود ببندم — استراتژی خودش رو تغییر میده و بهبود عجییب پیدا میکنه.</small>
+  </div>
+
+  <div class="stats" id="stats">
+    <div class="stat glow-purple"><label>Trades Learned</label><strong id="sTotal">—</strong><small id="sTotalSub">— wins / — losses</small></div>
+    <div class="stat"><label>Win Rate</label><strong id="sWR">—</strong><small id="sWRSub">profit factor —</small></div>
+    <div class="stat"><label>Expectancy</label><strong id="sExp">—</strong><small id="sExpSub">avg win / avg loss</small></div>
+    <div class="stat glow-green" id="expCard"><label>Current Streak</label><strong id="sStreak">—</strong><small id="sStreakSub">best — / worst —</small></div>
+    <div class="stat"><label>Strategy Now</label><strong id="sStrat">—</strong><small id="sStratSub">SL — TP — Trail —</small></div>
+    <div class="stat"><label>Improvement</label><strong id="sImp">—</strong><small id="sImpSub">vs first 10 trades</small></div>
+  </div>
+
+  <div class="main">
+    <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+      <div class="card">
+        <div class="card-hd"><i></i> EVOLUTION // HOW GOD IMPROVES <span class="mono" style="margin-left:auto;font-size:10px;color:var(--dim)">SL / TP / RISK over trades</span></div>
+        <div class="card-bd">
+          <div class="evoWrap"><canvas id="evoCanvas" width="800" height="180"></canvas></div>
+          <div class="evoWrap" style="height:120px"><canvas id="wrCanvas" width="800" height="120"></canvas></div>
+          <div class="mono" style="font-size:10px;color:var(--dim);margin-top:8px">هر نقطه یه معامله‌ست — ببین چطور SL/TP و ریسک بعد هر برد/باخت عوض شده، و WinRate چطور میره بالا</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><i style="background:var(--green)"></i> LESSONS // WHY EACH TRADE</div>
+        <div style="max-height:520px;overflow:auto">
+          <table class="tradeTable" id="tradeTable">
+            <thead><tr><th>#</th><th>Side / PnL</th><th>Exit</th><th>Why / Lesson</th><th>Applied</th></tr></thead>
+            <tbody id="tradeBody"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">هنوز معامله‌ای بسته نشده — بعد 1-2 ترید اینجا پر میشه...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+      <div class="card">
+        <div class="card-hd"><i style="background:var(--cyan)"></i> CURRENT BRAIN</div>
+        <div class="card-bd">
+          <div class="mono" style="font-size:11px;color:var(--muted);line-height:1.6" id="currentBrain">—</div>
+          <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:8px"><div class="mono" style="font-size:10px;color:var(--dim)">STOP LOSS</div><div class="mono" style="font-size:14px;font-weight:800" id="bSL">—</div></div>
+            <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:8px"><div class="mono" style="font-size:10px;color:var(--dim)">TAKE PROFIT</div><div class="mono" style="font-size:14px;font-weight:800;color:var(--green)" id="bTP">—</div></div>
+            <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:8px"><div class="mono" style="font-size:10px;color:var(--dim)">TRAILING</div><div class="mono" style="font-size:14px;font-weight:800" id="bTrail">—</div></div>
+            <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:8px"><div class="mono" style="font-size:10px;color:var(--dim)">RISK</div><div class="mono" style="font-size:14px;font-weight:800;color:var(--purple)" id="bRisk">—</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><i style="background:var(--amber)"></i> IMPROVEMENT // BEFORE vs NOW</div>
+        <div class="card-bd" id="impBox">
+          <div class="mono" style="font-size:11px;color:var(--muted)">بعد 10 ترید اول vs 10 ترید آخر مقایسه میشه...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:14px;padding:10px 14px;border:1px dashed var(--border);border-radius:12px;background:rgba(255,255,255,0.02);font-size:11px;color:var(--muted);line-height:1.5">
+    <strong style="color:var(--purple)">🧠 LEARNING MODE:</strong> هر بسته شدن پوزیشن (SL/TP/Trailing/Time) تحلیل میشه، درسش استخراج میشه، و پارامترها خودشون عوض میشن — بدون دخالت تو. میتونی از <b>/dashboard → RISK</b> دستی هم عوض کنی، ولی مغز دوباره یاد میگیره و بهینه میکنه. همه چیز اینجا شفافه.
+  </div>
+</div>
+
+<script>
+const API = location.origin;
+const $ = s=>document.querySelector(s);
+let data=null;
+function fmtPrice(n){return Number(n).toFixed(6)}
+function fmtUsd(n){return (n>=0?"+":"")+n.toFixed(4)+" $"}
+function render(d){
+  data=d;
+  const s = d;
+  $("#sTotal").textContent = s.total;
+  $("#sTotalSub").textContent = s.wins+" wins / "+s.losses+" losses";
+  $("#sWR").textContent = s.winRate+"%";
+  $("#sWR").style.color = s.winRate>=50?"var(--green)": s.winRate>=40?"var(--amber)":"var(--red)";
+  $("#sWRSub").textContent = "PF "+s.profitFactor+" • "+s.trades.length+" learned";
+  $("#sExp").textContent = fmtUsd(s.expectancyUsd);
+  $("#sExp").style.color = s.expectancyUsd>=0?"var(--green)":"var(--red)";
+  $("#sExpSub").textContent = "avgWin "+fmtUsd(s.avgWinUsd)+" / avgLoss "+fmtUsd(s.avgLossUsd);
+  const streak = s.curStreak;
+  $("#sStreak").textContent = streak>0? "🔥 "+streak+" WINS" : streak<0? "❄️ "+Math.abs(streak)+" LOSS" : "—";
+  $("#sStreak").style.color = streak>0?"var(--green)": streak<0?"var(--red)":"var(--muted)";
+  $("#sStreakSub").textContent = "best "+s.bestStreak+" / worst "+s.worstStreak;
+  // strategy now
+  const last = s.evolution.at(-1) || {sl:3,tp:6,trail:1.5,risk:10};
+  $("#sStrat").textContent = `SL ${last.sl}% / TP ${last.tp}%`;
+  $("#sStratSub").textContent = `Trail ${last.trail}% • Risk ${last.risk}%`;
+  // improvement vs first 10
+  if(s.trades.length>=20){
+    const first10 = s.trades.slice(0,10), last10 = s.trades.slice(-10);
+    const wrFirst = first10.filter(x=>x.win).length/10*100, wrLast = last10.filter(x=>x.win).length/10*100;
+    const pfFirst = (first10.filter(x=>x.win).reduce((a,b)=>a+b.pnlUsd,0) / Math.abs(first10.filter(x=>!x.win).reduce((a,b)=>a+b.pnlUsd,0)||1)).toFixed(2);
+    const pfLast = (last10.filter(x=>x.win).reduce((a,b)=>a+b.pnlUsd,0) / Math.abs(last10.filter(x=>!x.win).reduce((a,b)=>a+b.pnlUsd,0)||1)).toFixed(2);
+    const diff = wrLast - wrFirst;
+    $("#sImp").textContent = (diff>=0?"+":"")+diff.toFixed(1)+"% WR";
+    $("#sImp").style.color = diff>=0?"var(--green)":"var(--red)";
+    $("#sImpSub").textContent = `PF ${pfFirst} → ${pfLast}`;
+    $("#impBox").innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:10px"><div class="mono" style="font-size:10px;color:var(--dim)">FIRST 10 TRADES</div><div class="mono" style="font-size:14px;font-weight:800">${wrFirst.toFixed(0)}% WR</div><div class="mono" style="font-size:11px;color:var(--muted)">PF ${pfFirst}</div></div>
+      <div style="background:rgba(123,108,246,0.12);border:1px solid rgba(123,108,246,0.3);border-radius:10px;padding:10px"><div class="mono" style="font-size:10px;color:var(--purple)">LAST 10 TRADES</div><div class="mono" style="font-size:14px;font-weight:800;color:var(--green)">${wrLast.toFixed(0)}% WR</div><div class="mono" style="font-size:11px;color:var(--muted)">PF ${pfLast} • ${diff>=0?"📈 بهبود عجییب!":"📉 در حال یادگیری..."}</div></div>
+    </div><div class="mono" style="font-size:10px;color:var(--dim);margin-top:8px;text-align:center">مغز هر ترید یه درس میگیره و SL/TP/Trail/Risk رو خودش تنظیم میکنه</div>`;
+  } else {
+    $("#sImp").textContent = "—";
+    $("#sImpSub").textContent = "need 20+ trades";
+  }
+  // brain
+  $("#brainTitle").textContent = s.brain || "🧠 منتظر ترید...";
+  $("#brainText").textContent = s.trades.length ? `آخرین درس: ${s.trades.at(-1)?.lesson || "—"} — ${s.trades.at(-1)?.why || ""}` : "هر معامله تحلیل میشه: چرا سود شد، چرا ضرر، کجا بهتر بود ببندم — استراتژی خودش رو تغییر میده.";
+  $("#currentBrain").textContent = s.brain;
+  $("#bSL").textContent = last.sl+"%";
+  $("#bTP").textContent = last.tp+"%";
+  $("#bTrail").textContent = last.trail+"%";
+  $("#bRisk").textContent = last.risk+"%";
+  // table
+  const body=$("#tradeBody");
+  if(!s.trades.length){ body.innerHTML='<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">هنوز معامله‌ای بسته نشده — بعد 1-2 ترید اینجا پر میشه...</td></tr>'; }
+  else {
+    body.innerHTML="";
+    [...s.trades].reverse().slice(0,40).forEach((t,i)=>{
+      const tr=document.createElement("tr");
+      const cls = t.win?"win":"loss", tag= t.win?'tag-win':'tag-loss';
+      const exitCls = t.exitReason.includes("TP")?"tag-tp": t.exitReason.includes("SL")?"tag-sl":"tag";
+      tr.innerHTML = `<td class="mono" style="color:var(--dim)">#${t.block}</td>
+        <td><span class="${cls}">${t.side.toUpperCase()} ${t.win?"✅":"❌"} ${t.pnlPct>=0?"+":""}${t.pnlPct}%</span><br><span class="mono" style="font-size:10px;color:var(--muted)">${t.size} @ ${fmtPrice(t.entry)} → ${fmtPrice(t.exit)} • ${t.holdBlocks*0.3|0}s</span></td>
+        <td><span class="tag ${exitCls}">${t.exitReason}</span><br><span class="mono" style="font-size:10px;color:var(--muted)">${fmtUsd(t.pnlUsd)}</span></td>
+        <td style="max-width:320px"><div style="font-size:11px;color:var(--ink);line-height:1.4">${t.why}</div><div style="font-size:10px;color:var(--purple);margin-top:4px">💡 ${t.lesson}</div></td>
+        <td><span class="tag" style="background:rgba(123,108,246,0.12);color:var(--purple);border-color:rgba(123,108,246,0.3)">${t.applied}</span><br><span class="mono" style="font-size:10px;color:var(--dim)">SL ${t.before.sl}→${t.after.sl} TP ${t.before.tp}→${t.after.tp}</span></td>`;
+      body.appendChild(tr);
+    });
+  }
+  drawEvo(); drawWR();
+}
+function drawEvo(){
+  const cvs=$("#evoCanvas"), ctx=cvs.getContext("2d");
+  const dpr=devicePixelRatio||1, rect=cvs.getBoundingClientRect();
+  cvs.width=rect.width*dpr; cvs.height=rect.height*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+  const W=rect.width,H=rect.height;
+  ctx.clearRect(0,0,W,H);
+  if(!data?.evolution?.length) return;
+  const evo=data.evolution;
+  const maxSL=Math.max(...evo.map(x=>x.sl),6), maxTP=Math.max(...evo.map(x=>x.tp),10), maxRisk=Math.max(...evo.map(x=>x.risk),20);
+  const max = Math.max(maxSL,maxTP,maxRisk);
+  const min=0;
+  const X=i=>12+(i/(evo.length-1))*(W-24);
+  const Y=v=>12+(1-(v-min)/(max-min||1))*(H-24);
+  // grid
+  ctx.strokeStyle="rgba(255,255,255,0.04)"; ctx.lineWidth=1;
+  for(let i=0;i<3;i++){ const y=12+(H-24)*i/3; ctx.beginPath(); ctx.moveTo(12,y); ctx.lineTo(W-12,y); ctx.stroke(); ctx.fillStyle="rgba(138,148,168,0.5)"; ctx.font="10px JetBrains Mono"; ctx.textAlign="right"; ctx.fillText(((max-min)*(1-i/3)).toFixed(0)+"%",W-14,y-4); }
+  const lines=[{k:"sl",c:"#FF3B5C",l:"SL"},{k:"tp",c:"#00FF88",l:"TP"},{k:"risk",c:"#7B6CF6",l:"Risk"}];
+  lines.forEach(({k,c})=>{
+    ctx.beginPath(); evo.forEach((p,i)=>{ const x=X(i),y=Y(p[k]); i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
+    ctx.strokeStyle=c; ctx.lineWidth=2; ctx.shadowColor=c; ctx.shadowBlur=8; ctx.stroke(); ctx.shadowBlur=0;
+  });
+  // legend
+  ctx.font="10px JetBrains Mono"; ctx.textAlign="left";
+  lines.forEach(({c,l},i)=>{ ctx.fillStyle=c; ctx.fillRect(14, H-14 - i*12, 10,3); ctx.fillText(l, 28, H-12 - i*12); });
+}
+function drawWR(){
+  const cvs=$("#wrCanvas"), ctx=cvs.getContext("2d");
+  const dpr=devicePixelRatio||1, rect=cvs.getBoundingClientRect();
+  cvs.width=rect.width*dpr; cvs.height=rect.height*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+  const W=rect.width,H=rect.height;
+  ctx.clearRect(0,0,W,H);
+  if(!data?.evolution?.length) return;
+  const evo=data.evolution;
+  const X=i=>12+(i/(evo.length-1))*(W-24);
+  const Y=v=>8+(1-v/100)*(H-16);
+  ctx.strokeStyle="rgba(255,255,255,0.06)"; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(12,Y(50)); ctx.lineTo(W-12,Y(50)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle="rgba(138,148,168,0.5)"; ctx.font="10px JetBrains Mono"; ctx.textAlign="right"; ctx.fillText("50% WR",W-14,Y(50)-4);
+  ctx.beginPath(); evo.forEach((p,i)=>{ const x=X(i),y=Y(p.winRate); i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
+  ctx.strokeStyle="#00E5CC"; ctx.lineWidth=2; ctx.shadowColor="#00E5CC"; ctx.shadowBlur=8; ctx.stroke(); ctx.shadowBlur=0;
+  // fill
+  ctx.lineTo(X(evo.length-1),H-8); ctx.lineTo(X(0),H-8); ctx.closePath();
+  const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,"rgba(0,229,204,0.25)"); g.addColorStop(1,"transparent"); ctx.fillStyle=g; ctx.fill();
+}
+async function fetchLearn(){
+  try{
+    const r=await fetch(API+"/api/learning"); const j=await r.json(); render(j);
+    $("#blockPill").textContent = j.total+" trades learned";
+  }catch(e){ console.error(e); }
+}
+fetchLearn(); setInterval(fetchLearn, 2000);
+addEventListener("resize", ()=>{ drawEvo(); drawWR(); });
+// also listen SSE for live updates
+try{
+  const es=new EventSource(API+"/events");
+  es.addEventListener("block", ()=> fetchLearn());
+  es.addEventListener("fill", ()=> fetchLearn());
+}catch{}
+</script>
+</body>
+</html>

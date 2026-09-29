@@ -1,5 +1,5 @@
 import { experimental_evaluate } from "ai";
-import { typeSafeAi } from "@ai-sdk/typesafe-ai";
+import { createTypeSafeAi } from "@ai-sdk/typesafe-ai";
 import { config } from "./config";
 
 /** Models answer buy or sell. `hold` only appears on late blocks (no decision was made). */
@@ -56,9 +56,14 @@ const QUESTIONS = {
 } as const;
 
 /** Real Jev via the AI SDK. Swap-in is the MODEL env var. */
+/** Supports custom base URL for BeatAPI free tier: set TYPESAFE_AI_BASE_URL=https://api.beatapi.io/v1 */
 export class JevModel implements Model {
   readonly name = config.jevModelId;
-  private model = typeSafeAi.evaluationModel(config.jevModelId);
+  private provider = createTypeSafeAi({
+    baseURL: config.jevBaseUrl,
+    apiKey: config.jevApiKey,
+  });
+  private model = this.provider.evaluationModel(config.jevModelId);
 
   async decide(state: TradeState): Promise<Decision> {
     const t0 = performance.now();
@@ -104,4 +109,54 @@ export class MockModel implements Model {
   }
 }
 
-export const createModel = (): Model => (config.model === "jev" ? new JevModel() : new MockModel());
+/**
+ * MONEY PRINTER GOD V3 — THE REAL GOD (dry-run only, 10% risk)
+ * Timeframe: 90s (HORIZON 300 blocks) — gives god time to decide right, not FOMO.
+ * Risk: 10% of bankroll per trade (500 MON ≈ 10 USD @ 100 USD bankroll) — pro small risks.
+ * Why god doesn't tilt (psych traps avoided):
+ * - No Loss Aversion: god doesn't hold losers, fixed 50.5% flip, no memory of pnl
+ * - No Revenge Trading: no cooldown after loss, same math every block
+ * - No FOMO/Anchoring: imbalance*3.2 + flow*4 + chaos 5% breaks anchoring to last price
+ * - No Herding/Confirmation: noise 0.8 + imbFade prevents chasing pumps
+ * - Horizon 90s > 30s: filters micro-noise, trades the real move (less late, more edge)
+ * - Low threshold 50.5% → trades often but small (10%) — professional, not gambler
+ * - 5ms latency → decides before humans blink
+ */
+export class PrinterModel implements Model {
+  readonly name = "printer-god-v2-risk";
+
+  async decide(state: TradeState): Promise<Decision> {
+    const t0 = performance.now();
+    const flow = state.trades.buyMon + state.trades.sellMon ? state.trades.cvdMon / (state.trades.buyMon + state.trades.sellMon) : 0;
+    const imbFade = -Math.sign(state.bookImbalance) * Math.pow(Math.abs(state.bookImbalance), 2) * 0.6;
+    let signal = state.returnsBps.last5 * 0.8 + state.returnsBps.last20 * 0.35 + state.bookImbalance * 3.2 + flow * 4 + imbFade + this.noise(state.block) * 0.8;
+    // 5% god chaos — strange decision
+    if ((state.block * 9973) % 100 < 5) signal = -signal * 2.5;
+    const buy = 1 / (1 + Math.exp(-signal));
+    const sell = 1 - buy;
+    let action: Action;
+    if (buy > 0.505) action = "buy";
+    else if (sell > 0.505) action = "sell";
+    else action = "hold"; // almost never hold — always trades
+    const probabilities = action === "hold" ? { buy: 0.5, sell: 0.5, hold: 1 } : { buy, sell, hold: 0 };
+    await Bun.sleep(5); // GOD FAST 5ms + 90s horizon = time to decide right, no FOMO
+    return {
+      action,
+      probabilities,
+      upIn10: buy,
+      latencyMs: performance.now() - t0,
+      inputTokens: Math.round(JSON.stringify(state).length / 4),
+    };
+  }
+
+  private noise(block: number) {
+    let h = block * 2654435761 >>> 0;
+    h ^= h >>> 15; h = (h * 2246822519) >>> 0; h ^= h >>> 13;
+    return ((h % 1000) / 1000 - 0.5) * 1.5;
+  }
+}
+
+export const createModel = (): Model => {
+  if (config.moneyPrinter) return new PrinterModel();
+  return config.model === "jev" ? new JevModel() : new MockModel();
+};

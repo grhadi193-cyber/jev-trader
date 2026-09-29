@@ -1,0 +1,46 @@
+services:
+  - type: web
+    name: jev-trader-demo
+    runtime: docker
+    plan: free
+    branch: demo-deploy
+    dockerfilePath: ./Dockerfile
+    # Render sets PORT automatically (10000); our server respects process.env.PORT with fallback 3000.
+    healthCheckPath: /
+    autoDeploy: false
+    envVars:
+      - key: MODEL
+        value: printer
+      - key: MONEY_PRINTER
+        value: "true"
+      - key: GOD_MODE
+        value: "true"
+      - key: JEV_MODEL_ID
+        value: jev-1.13-free
+      - key: TYPESAFE_AI_BASE_URL
+        value: https://api.beatapi.io/v1
+      - key: DRY_RUN
+        value: "true"
+      - key: PORT
+        value: "10000"
+      - key: RPC_URL
+        value: https://rpc.monad.xyz
+      - key: READ_RPC_URL
+        value: https://rpc.monad.xyz
+      - key: TYPESAFE_AI_API_KEY
+        sync: false
+      # --- GOD 10% RISK SETTINGS — professional small risks, god-like ---
+      # 10% per trade: BANKROLL 100 USD → 10 USD per trade → ~500 MON @ ~0.02 MON/USDC
+      # Higher timeframe: HORIZON 300 blocks = 90s (was 100=30s) → more time to decide right
+      - key: HORIZON_BLOCKS
+        value: "300"
+      - key: TRADE_SIZE_MON
+        value: "500"
+      - key: MAX_POSITION_MON
+        value: "2500"
+      - key: QUOTE_INSIDE_TICKS
+        value: "1"
+      - key: BANKROLL_USD
+        value: "100"
+      # PRIVATE_KEY is intentionally NOT defined — demo is dry-run only (beatapi.io free Jev, no balance needed)
+      # Add BEATAPI_API_KEY alias also works. Do not add PRIVATE_KEY here.

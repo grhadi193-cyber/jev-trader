@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JEV TRADER // GOD MODE — MON-USDC // KURU</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#06070A; --panel:#0E1116; --panel2:#11151D; --border:#1E2533; --border2:#253044;
+  --ink:#E6EAF2; --muted:#8A94A8; --dim:#5B657A;
+  --purple:#7B6CF6; --purple2:#9D93F8; --cyan:#00E5CC; --green:#00FF88; --green2:#0FFF95; --red:#FF3B5C; --red2:#FF6B7A; --amber:#FFB800; --blue:#3B82FF;
+  --grid: rgba(123,108,246,0.07);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:"Space Grotesk",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+.mono{font-family:"JetBrains Mono",monospace}
+
+/* scanline + grid texture */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size:32px 32px;
+  opacity:0.6;
+}
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background: radial-gradient(1200px 600px at 50% -10%, rgba(123,108,246,0.18), transparent 60%),
+              radial-gradient(800px 400px at 90% 30%, rgba(0,229,204,0.12), transparent 60%),
+              linear-gradient(transparent 50%, rgba(0,255,136,0.02) 50%);
+  background-size: auto, auto, 100% 4px;
+}
+
+/* layout */
+.wrap{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:18px 16px 24px}
+.header{
+  display:flex;align-items:center;gap:14px;padding:12px 16px;
+  background:linear-gradient(180deg, rgba(17,21,29,0.9), rgba(14,17,22,0.9));
+  border:1px solid var(--border);border-radius:14px;backdrop-filter:blur(12px);
+  box-shadow:0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04);
+  position:sticky;top:12px;z-index:5;
+}
+.brand{font-weight:800;letter-spacing:0.08em;font-size:13px;display:flex;align-items:center;gap:10px}
+.brand b{font-size:15px;letter-spacing:0.06em}
+.live-dot{width:9px;height:9px;border-radius:999px;background:var(--green);box-shadow:0 0 12px var(--green), 0 0 24px var(--green);animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.15);opacity:0.85}}
+.pill{font-family:"JetBrains Mono",monospace;font-size:11px;padding:5px 8px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:var(--muted)}
+.badge{font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:700;padding:6px 10px;border-radius:999px;letter-spacing:0.06em}
+.badge-god{background:linear-gradient(135deg, #7B6CF6, #00E5CC);color:white;box-shadow:0 0 16px rgba(123,108,246,0.5)}
+.badge-mock{background:rgba(255,184,0,0.15);color:var(--amber);border:1px solid rgba(255,184,0,0.3)}
+.wallet{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);border:1px solid var(--border);padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.02)}
+.wallet.live{color:var(--ink);border-color:var(--border2)}
+
+/* stats row */
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:14px 0}
+@media(max-width:900px){.stats{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:560px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{
+  background:linear-gradient(180deg, var(--panel) , var(--panel2));
+  border:1px solid var(--border);border-radius:12px;padding:12px 12px 10px;
+  position:relative;overflow:hidden;
+}
+.stat::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;background:linear-gradient(90deg, transparent, rgba(123,108,246,0.5), transparent);opacity:0.6}
+.stat label{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--dim);font-weight:600}
+.stat strong{font-family:"JetBrains Mono",monospace;font-size:18px;font-weight:800;letter-spacing:-0.02em;display:block;margin-top:4px}
+.stat small{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--muted);display:block;margin-top:2px}
+.stat.glow-green{box-shadow:0 0 0 1px rgba(0,255,136,0.15), 0 4px 24px rgba(0,255,136,0.08)}
+.stat.glow-red{box-shadow:0 0 0 1px rgba(255,59,92,0.15), 0 4px 24px rgba(255,59,92,0.08)}
+.stat.glow-purple{box-shadow:0 0 0 1px rgba(123,108,246,0.2), 0 4px 24px rgba(123,108,246,0.1)}
+
+/* main grid */
+.main{display:grid;grid-template-columns:1.65fr 0.85fr;gap:12px;align-items:start}
+@media(max-width:960px){.main{grid-template-columns:1fr}}
+.card{
+  background:linear-gradient(180deg, rgba(16,20,28,0.9), rgba(11,14,19,0.9));
+  border:1px solid var(--border);border-radius:14px;overflow:hidden;backdrop-filter:blur(10px);
+  box-shadow:0 8px 32px rgba(0,0,0,0.5);
+}
+.card-hd{padding:12px 14px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.card-hd i{width:8px;height:8px;border-radius:999px;background:var(--purple);box-shadow:0 0 10px var(--purple)}
+.card-bd{padding:12px}
+.chartWrap{position:relative;height:360px;background:radial-gradient(600px 300px at 30% 20%, rgba(123,108,246,0.08), transparent 60%), linear-gradient(180deg, rgba(255,255,255,0.01), transparent)}
+.chartWrap canvas{position:absolute;inset:12px;width:calc(100% - 24px);height:calc(100% - 24px)}
+.chartOverlay{position:absolute;inset:12px;pointer-events:none}
+.priceBig{position:absolute;top:18px;left:16px;font-family:"JetBrains Mono",monospace}
+.priceBig strong{font-size:28px;font-weight:800;letter-spacing:-0.03em;text-shadow:0 0 20px rgba(123,108,246,0.6)}
+.priceBig small{font-size:11px;color:var(--muted);display:block;margin-top:2px}
+.riskBadge{position:absolute;top:18px;right:16px;font-family:"JetBrains Mono",monospace;font-size:11px;padding:6px 10px;border-radius:999px;font-weight:700;letter-spacing:0.06em;border:1px solid}
+.risk-low{background:rgba(0,255,136,0.12);color:var(--green);border-color:rgba(0,255,136,0.3);box-shadow:0 0 12px rgba(0,255,136,0.2)}
+.risk-med{background:rgba(255,184,0,0.12);color:var(--amber);border-color:rgba(255,184,0,0.3)}
+.risk-high{background:rgba(255,59,92,0.15);color:var(--red);border-color:rgba(255,59,92,0.4);box-shadow:0 0 16px rgba(255,59,92,0.3);animation:riskPulse 1.2s infinite}
+@keyframes riskPulse{0%,100%{box-shadow:0 0 16px rgba(255,59,92,0.3)}50%{box-shadow:0 0 24px rgba(255,59,92,0.5)}}
+
+/* decision panel */
+.decision{padding:14px}
+.decRow{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.decWord{font-weight:800;font-size:22px;letter-spacing:-0.02em}
+.decWord.buy{color:var(--green);text-shadow:0 0 16px rgba(0,255,136,0.6)}
+.decWord.sell{color:var(--red);text-shadow:0 0 16px rgba(255,59,92,0.6)}
+.decWord.hold{color:var(--muted)}
+.decWord.late{color:var(--amber)}
+.bar{height:10px;border-radius:999px;background:rgba(255,255,255,0.06);overflow:hidden;display:flex;border:1px solid var(--border);position:relative}
+.bar i{height:100%;transition:width 0.35s ease;position:relative}
+.bar i.buy{background:linear-gradient(90deg, #00FF88, #00E5CC);box-shadow:0 0 12px rgba(0,255,136,0.6)}
+.bar i.sell{background:linear-gradient(90deg, #FF3B5C, #FF6B7A);box-shadow:0 0 12px rgba(255,59,92,0.5)}
+.bar i.hold{background:var(--dim)}
+.metaRow{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.meta{font-family:"JetBrains Mono",monospace;font-size:11px;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--muted)}
+.meta strong{color:var(--ink);font-weight:700}
+.ticks{display:flex;gap:4px;margin-top:12px}
+.tick{flex:1;height:18px;border-radius:4px;background:var(--border);position:relative;overflow:hidden}
+.tick.buy{background:var(--green);box-shadow:0 0 8px rgba(0,255,136,0.4)}
+.tick.sell{background:var(--red);box-shadow:0 0 8px rgba(255,59,92,0.4)}
+.tick.hold{background:var(--dim)}
+.tick.late{background:var(--amber)}
+
+/* feed */
+.feed{max-height:420px;overflow:auto}
+.feed::-webkit-scrollbar{width:6px}
+.feed::-webkit-scrollbar-thumb{background:var(--border2);border-radius:999px}
+.row{display:grid;grid-template-columns:58px 42px 1fr 74px;gap:8px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);font-family:"JetBrains Mono",monospace;font-size:11px;align-items:center}
+.row.head{position:sticky;top:0;background:var(--panel);z-index:1;color:var(--dim);font-size:10px;letter-spacing:0.08em;text-transform:uppercase}
+.row .side.buy{color:var(--green);font-weight:700}
+.row .side.sell{color:var(--red);font-weight:700}
+.row .side.hold{color:var(--dim)}
+
+/* pnl spark */
+.pnlWrap{height:120px;position:relative;background:rgba(0,0,0,0.2);border-radius:10px;border:1px solid var(--border);overflow:hidden;margin-top:12px}
+.pnlWrap canvas{position:absolute;inset:0;width:100%;height:100%}
+
+/* risk controls */
+.riskGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.riskBox{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:10px}
+.riskBox label{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--dim);font-weight:700;display:block;margin-bottom:6px}
+.riskBox input[type=range]{width:100%;accent-color:var(--purple);height:4px}
+.riskBox input[type=number]{width:100%;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;color:var(--ink);font-family:"JetBrains Mono",monospace;font-size:13px;padding:7px 8px;outline:none}
+.riskBox input[type=number]:focus{border-color:var(--purple);box-shadow:0 0 0 2px rgba(123,108,246,0.2)}
+.riskVal{font-family:"JetBrains Mono",monospace;font-size:14px;font-weight:800;color:var(--ink)}
+.riskSub{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--muted);margin-top:2px}
+.riskSave{width:100%;margin-top:10px;background:linear-gradient(135deg, #7B6CF6, #00E5CC);color:white;border:none;border-radius:10px;padding:10px 12px;font-weight:800;letter-spacing:0.06em;font-size:12px;cursor:pointer;box-shadow:0 0 16px rgba(123,108,246,0.4);transition:transform 0.1s}
+.riskSave:active{transform:scale(0.99)}
+.riskSave:disabled{opacity:0.6;cursor:not-allowed}
+.presetRow{display:flex;gap:6px;margin-top:8px}
+.preset{flex:1;font-family:"JetBrains Mono",monospace;font-size:10px;padding:6px 4px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:var(--muted);cursor:pointer;text-align:center}
+.preset:hover{border-color:var(--purple);color:var(--ink)}
+.preset.active{background:rgba(123,108,246,0.2);border-color:var(--purple);color:white}
+.modeToggle{display:flex;gap:6px;margin-top:8px}
+.modeToggle button{flex:1;padding:6px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:var(--muted);font-family:"JetBrains Mono",monospace;font-size:11px;cursor:pointer}
+.modeToggle button.on{background:var(--purple);color:white;border-color:var(--purple)}
+
+/* footer */
+.foot{margin-top:14px;padding:10px 14px;border:1px dashed var(--border);border-radius:12px;background:rgba(255,255,255,0.02);font-size:11px;color:var(--muted);line-height:1.5}
+.foot strong{color:var(--amber)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="brand"><span class="live-dot"></span> <b>JEV TRADER</b> <span style="opacity:0.6">// GOD MODE</span></div>
+    <div class="pill mono" id="blockPill">block —</div>
+    <div class="pill mono" id="marketPill">MON-USDC • KURU • MONAD 143</div>
+    <div style="flex:1"></div>
+    <div class="wallet" id="walletPill">dry run</div>
+    <a href="/learn" class="pill mono" style="background:linear-gradient(135deg, #7B6CF6, #00E5CC);color:white;border:none;box-shadow:0 0 12px rgba(123,108,246,0.4)">🧠 LEARN</a>
+    <div class="badge badge-god" id="modelBadge">printer-god-v2-risk</div>
+    <div class="pill mono" id="connPill" style="border-color:rgba(0,255,136,0.3);color:var(--green)">● LIVE</div>
+  </div>
+
+  <div class="stats" id="stats">
+    <div class="stat glow-purple"><label>Blocks</label><strong id="sBlocks">—</strong><small id="sBlocksSub">—</small></div>
+    <div class="stat"><label>Decisions / Late</label><strong id="sDec">—</strong><small id="sLate">—</small></div>
+    <div class="stat"><label>Fills</label><strong id="sFills">—</strong><small id="sFillsSub">simulated</small></div>
+    <div class="stat glow-green" id="pnlCard"><label>P&L</label><strong id="sPnl">—</strong><small id="sPnlSub">—</small></div>
+    <div class="stat"><label>Position</label><strong id="sPos">—</strong><small id="sPosSub">—</small></div>
+    <div class="stat"><label>Fees // Real</label><strong id="sFees">—</strong><small id="sFeesSub" style="font-size:9px">—</small></div>
+  </div>
+
+  <div class="main">
+    <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+      <div class="card">
+        <div class="card-hd"><i></i> PRICE // MON-USDC — KURU ORDERBOOK <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim)">LIVE 300ms</span></div>
+        <div class="chartWrap" id="chartWrap">
+          <canvas id="priceCanvas" width="800" height="360"></canvas>
+          <div class="chartOverlay">
+            <div class="priceBig"><strong id="priceBig">—</strong><small id="priceSub">mid • spread —</small></div>
+            <div class="riskBadge risk-low" id="riskBadge">RISK: LOW</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><i style="background:var(--green)"></i> PNL // EQUITY CURVE <span style="margin-left:auto" class="mono" id="pnlPct">—</span></div>
+        <div class="pnlWrap"><canvas id="pnlCanvas" width="800" height="120"></canvas></div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+      <div class="card" id="riskCard">
+        <div class="card-hd"><i style="background:var(--purple)"></i> RISK // CONTROLS <span class="mono" style="margin-left:auto;font-size:10px;color:var(--dim)">LIVE SAVE → /api/risk</span></div>
+        <div class="card-bd">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span class="mono" style="font-size:10px;color:var(--dim)">MODE</span>
+            <div class="modeToggle" style="margin-top:0">
+              <button id="modePct" class="on" onclick="setMode(true)">% PERCENT</button>
+              <button id="modeFixed" onclick="setMode(false)">FIXED MON</button>
+            </div>
+            <span id="riskStatus" class="mono" style="margin-left:auto;font-size:10px;color:var(--muted)">—</span>
+          </div>
+          <div class="riskGrid">
+            <div class="riskBox">
+              <label>Bankroll $</label>
+              <input type="number" id="bankroll" min="10" max="100000" step="10" value="100">
+              <div class="riskSub">حساب کل — 10% از 100$ = $10</div>
+            </div>
+            <div class="riskBox">
+              <label>Leverage <span id="levVal" class="riskVal" style="font-size:11px"></span></label>
+              <input type="range" id="leverage" min="1" max="10" step="1" value="2">
+              <div class="riskSub"><span id="levDisp">2x</span> • maxPos = size ×5</div>
+            </div>
+          </div>
+          <div class="riskGrid">
+            <div class="riskBox">
+              <label>Risk per trade % <span id="riskPctVal" class="riskVal">10%</span></label>
+              <input type="range" id="riskPct" min="1" max="50" step="0.5" value="10">
+              <div class="riskSub"><span id="riskUsdDisp">$10.00</span> • <span id="riskMonDisp">~346 MON</span></div>
+            </div>
+            <div class="riskBox">
+              <label>Risk $ amount</label>
+              <input type="number" id="riskUsd" min="1" max="50000" step="1" value="10">
+              <div class="riskSub">sync با %</div>
+            </div>
+          </div>
+          <div class="riskGrid" id="fixedRow" style="display:none">
+            <div class="riskBox">
+              <label>Fixed Trade Size MON</label>
+              <input type="number" id="fixedSize" min="200" max="10000" step="100" value="500">
+            </div>
+            <div class="riskBox">
+              <label>Max Position MON</label>
+              <input type="number" id="maxPos" min="200" max="20000" step="100" value="2500">
+            </div>
+          </div>
+          <div class="riskGrid">
+            <div class="riskBox">
+              <label>Quote Inside Ticks <span id="ticksVal" class="riskVal">1</span></label>
+              <input type="range" id="quoteTicks" min="0" max="3" step="1" value="1">
+              <div class="riskSub">0=join • 1=inside (fill بیشتر)</div>
+            </div>
+            <div class="riskBox" style="display:flex;flex-direction:column;justify-content:center">
+              <div class="mono" style="font-size:11px;color:var(--muted)">CALCULATED</div>
+              <div class="riskVal" id="calcSize">346 MON / $10.00</div>
+              <div class="riskSub" id="calcMax">max 1,730 MON • 5 trades</div>
+            </div>
+          </div>
+          <div style="margin-top:10px;padding:10px;background:rgba(123,108,246,0.06);border:1px solid rgba(123,108,246,0.15);border-radius:10px">
+            <div class="mono" style="font-size:10px;letter-spacing:0.1em;color:var(--purple);font-weight:700;margin-bottom:8px">EXIT STRATEGY — STOP LOSS / TAKE PROFIT</div>
+            <div class="riskGrid" style="margin-top:0">
+              <div class="riskBox">
+                <label>Stop Loss % <span id="slVal" class="riskVal">3%</span></label>
+                <input type="range" id="stopLoss" min="0.5" max="10" step="0.5" value="3">
+                <div class="riskSub">ضرر -<span id="slDisp">3%</span> → خروج</div>
+              </div>
+              <div class="riskBox">
+                <label>Take Profit % <span id="tpVal" class="riskVal">6%</span></label>
+                <input type="range" id="takeProfit" min="1" max="30" step="0.5" value="6">
+                <div class="riskSub">سود +<span id="tpDisp">6%</span> → خروج • RR <span id="rrDisp">2.0</span></div>
+              </div>
+            </div>
+            <div class="riskGrid">
+              <div class="riskBox">
+                <label>Trailing % <span id="trailVal" class="riskVal">1.5%</span></label>
+                <input type="range" id="trailing" min="0" max="5" step="0.5" value="1.5">
+                <div class="riskSub">0=off • بعد سود، اگر <span id="trailDisp">1.5%</span> برگرده → خروج</div>
+              </div>
+              <div class="riskBox">
+                <label>Time Stop <span id="timeVal" class="riskVal">300</span></label>
+                <input type="range" id="timeStop" min="0" max="2000" step="50" value="300">
+                <div class="riskSub"><span id="timeDisp">90s</span> (300 blocks) 0=off</div>
+              </div>
+            </div>
+          </div>
+          <div class="presetRow">
+            <div class="preset" onclick="applyPreset('conservative')">🛡️ 2% 2x</div>
+            <div class="preset active" onclick="applyPreset('god')">👑 10% 2x GOD</div>
+            <div class="preset" onclick="applyPreset('degen')">🔥 25% 5x</div>
+            <div class="preset" onclick="applyPreset('max')">💀 50% 10x MAX</div>
+          </div>
+          <button class="riskSave" id="riskSave" onclick="saveRisk()">💾 SAVE — APPLY LIVE</button>
+          <div class="mono" style="font-size:10px;color:var(--dim);margin-top:6px;text-align:center">ذخیره رو سرور (data/risk.json) + بلاک بعدی با ریسک/خروج جدید • بهترین RR=2 (TP=2×SL)</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><i style="background:var(--cyan)"></i> DECISION // GOD BRAIN</div>
+        <div class="decision" id="decisionBox">
+          <div class="decRow"><div class="decWord hold" id="decWord">Waiting…</div><div class="mono" id="decLat" style="font-size:11px;color:var(--muted)">—</div></div>
+          <div class="bar" id="probBar"><i class="buy" id="buyBar" style="width:50%"></i><i class="sell" id="sellBar" style="width:50%"></i></div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)"><span>BUY <b id="buyPct" style="color:var(--green)">—</b></span><span>SELL <b id="sellPct" style="color:var(--red)">—</b></span></div>
+          <div class="metaRow">
+            <div class="meta">conf <strong id="conf">—</strong></div>
+            <div class="meta">spread <strong id="spread">—</strong></div>
+            <div class="meta">imbalance <strong id="imb">—</strong></div>
+            <div class="meta">cvd <strong id="cvd">—</strong></div>
+          </div>
+          <div class="ticks" id="ticks"></div>
+          <div class="mono" style="margin-top:8px;font-size:10px;color:var(--dim);letter-spacing:0.06em" id="quoteLine">no quote</div>
+        </div>
+      </div>
+
+      <div class="card" style="flex:1;min-height:0;display:flex;flex-direction:column">
+        <div class="card-hd"><i style="background:var(--amber)"></i> TAPE // LAST FILLS <span style="margin-left:auto" class="mono" id="tapeCount">—</span></div>
+        <div class="feed" id="feed">
+          <div class="row head"><span>block</span><span>side</span><span>size @ price</span><span>pnl</span></div>
+          <div id="feedRows"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <strong>⚠️ EXPERIMENTAL DRY-RUN ONLY — REAL EXCHANGE FEE 100% از صرافی</strong> — کارمزد صرافی مستقیم از خود چین خونده میشه <b>Kuru getMarketParams</b> برای MON-USDC (<span id="footMarket" style="font-family:JetBrains Mono;font-size:10px">0x065C...</span>): taker <b><span id="footTaker">30</span> bps (<span id="footTakerPct">0.30</span>%)</b> / maker <b><span id="footMaker">10</span> bps (<span id="footMakerPct">0.10</span>%)</b> — هر fill دقیقا با همین feeBps حساب میشه (maker موقع limit hit، taker موقع exit SL/TP) + Monad gasLimit×gasPrice + Jev. PnL که میبینی <b>خالص واقعی</b> بعد کسر کارمزد صرافیه. <a href="/api/fees" target="_blank" style="color:var(--cyan)">/api/fees</a>
+  </div>
+</div>
+
+<script>
+const API = location.origin;
+const $ = s => document.querySelector(s);
+const fmtPrice = n => Number(n).toFixed(6);
+const fmtMon = (n,d=1)=> Number(n).toFixed(d);
+const fmtPct = n => (n>=0?"+":"")+Number(n).toFixed(3)+"%";
+
+let events = [];
+let meta = null;
+let latest = null;
+let pnlHistory = [];
+
+function renderStats(){
+  const t = latest?.totals;
+  if(!t) return;
+  $("#sBlocks").textContent = t.blocks.toLocaleString();
+  $("#sBlocksSub").textContent = t.lateBlocks+" late • "+(t.blocks - t.lateBlocks)+" ok";
+  $("#sDec").textContent = t.decisions.toLocaleString();
+  $("#sLate").textContent = t.lateBlocks+" late • avg "+(document._avgLat||0)+"ms";
+  $("#sFills").textContent = t.fills.toLocaleString();
+  const pnl = t.pnlUsd;
+  const pnlEl = $("#sPnl");
+  pnlEl.textContent = (pnl>=0?"+":"")+pnl.toFixed(4)+" $";
+  pnlEl.style.color = pnl>=0 ? "var(--green)" : "var(--red)";
+  $("#pnlCard").className = "stat "+(pnl>=0?"glow-green":"glow-red");
+  $("#sPnlSub").textContent = fmtPct(t.pnlPct) + " • " + fmtMon(t.pnlMon,4) + " MON";
+  $("#pnlPct").textContent = fmtPct(t.pnlPct);
+  $("#pnlPct").style.color = pnl>=0? "var(--green)" : "var(--red)";
+  const pos = latest.position;
+  $("#sPos").textContent = pos.side==="flat" ? "FLAT" : pos.side.toUpperCase()+" "+fmtMon(pos.size,0);
+  $("#sPos").style.color = pos.side==="long" ? "var(--green)" : pos.side==="short" ? "var(--red)" : "var(--muted)";
+  $("#sPosSub").textContent = pos.entryPrice ? "entry "+fmtPrice(pos.entryPrice)+" • uPnL "+Number(pos.unrealizedUsd).toFixed(4) : "no position";
+  const feeTotal = Number(t.totalFeesUsd||0), kuru = Number(t.kuruFeesUsd||0), gas = Number(t.gasUsd||0), jev = Number(t.jevUsd||0);
+  $("#sFees").textContent = "$"+feeTotal.toFixed(4);
+  $("#sFees").style.color = feeTotal>0?"var(--amber)":"var(--muted)";
+  $("#sFeesSub").textContent = `kuru $${kuru.toFixed(4)} (${(t.kuruMakerFeesUsd||0).toFixed(3)}M/${(t.kuruTakerFeesUsd||0).toFixed(3)}T) • gas $${gas.toFixed(4)} • jev $${jev.toFixed(4)}`;
+  $("#blockPill").textContent = "block "+t.blocks+" • #"+latest.block;
+  $("#priceBig").textContent = fmtPrice(latest.mid);
+  $("#priceSub").textContent = "mid • bid "+fmtPrice(latest.bestBid)+" / ask "+fmtPrice(latest.bestAsk)+" • spread "+Number(latest.spreadBps).toFixed(1)+"bps";
+  // risk badge
+  const absPos = Math.abs(pos.size);
+  const maxPos = 2500;
+  const risk = absPos/maxPos;
+  const rb = $("#riskBadge");
+  if(risk>0.7){ rb.textContent="RISK: HIGH • "+Math.round(risk*100)+"%"; rb.className="riskBadge risk-high"; }
+  else if(risk>0.35){ rb.textContent="RISK: MED • "+Math.round(risk*100)+"%"; rb.className="riskBadge risk-med"; }
+  else { rb.textContent="RISK: LOW • "+Math.round(risk*100)+"%"; rb.className="riskBadge risk-low"; }
+}
+
+function renderDecision(){
+  if(!latest || !latest.decision){ $("#decWord").textContent="Waiting…"; return; }
+  const d = latest.decision;
+  const w = $("#decWord");
+  w.className = "decWord "+ (d.late? "late" : d.action);
+  w.textContent = d.late? "LATE • HOLD" : d.action==="buy" ? "BUY" : d.action==="sell" ? "SELL" : "HOLD";
+  $("#decLat").textContent = d.late? "late" : d.latencyMs+" ms";
+  const buy = d.probabilities.buy||0, sell = d.probabilities.sell||0;
+  $("#buyBar").style.width = (buy*100).toFixed(1)+"%";
+  $("#sellBar").style.width = (sell*100).toFixed(1)+"%";
+  $("#buyPct").textContent = (buy*100).toFixed(0)+"%";
+  $("#sellPct").textContent = (sell*100).toFixed(0)+"%";
+  const conf = Math.max(buy,sell, d.probabilities.hold||0);
+  $("#conf").textContent = (conf*100).toFixed(0)+"%";
+  $("#spread").textContent = Number(latest.spreadBps).toFixed(1)+"bps";
+  $("#imb").textContent = (latest.decision? (latest.mid? "" : "") : "") + (latest.bestBid? "" : "");
+  // try to get imbalance from latest event's decision? we store it via history? fallback
+  $("#imb").textContent = latest.spreadBps ? (latest.decision.probabilities.buy>0.5? "+" : "-") + Math.abs((buy-sell)).toFixed(2) : "—";
+  $("#cvd").textContent = latest.totals ? latest.totals.fills+" fills" : "—";
+  const q = latest.quote;
+  $("#quoteLine").textContent = q ? `${q.side.toUpperCase()} ${q.size} @ ${fmtPrice(q.price)} • ${q.status}${q.capped?" • capped":""} • ${q.cancel.length} cancel` : "no quote (hold / cap)";
+  // ticks
+  const ticksEl = $("#ticks");
+  ticksEl.innerHTML = "";
+  const recent = events.slice(-36);
+  recent.forEach(e=>{
+    const div=document.createElement("div");
+    div.className="tick "+ (e.decision?.late? "late" : e.decision?.action || "hold");
+    div.title="#"+e.block+" "+(e.decision?.action||"hold");
+    ticksEl.appendChild(div);
+  });
+}
+
+function renderFeed(){
+  const rows = $("#feedRows");
+  rows.innerHTML="";
+  const fills = events.filter(e=>e.fill).slice(-18).reverse();
+  $("#tapeCount").textContent = fills.length+" fills";
+  fills.forEach(e=>{
+    const r=document.createElement("div"); r.className="row";
+    const fee = e.fill.feeUsd ? ` <span style="font-size:9px;color:var(--amber)">fee $${Number(e.fill.feeUsd).toFixed(3)} ${(e.fill.isTaker?"T":"M")} ${e.fill.feeBps}bps</span>` : "";
+    r.innerHTML = `<span class="mono" style="color:var(--dim)">#${e.block}</span><span class="side ${e.fill.side}">${e.fill.side.toUpperCase()}</span><span>${fmtMon(e.fill.size,0)} @ ${fmtPrice(e.fill.price)}${fee}</span><span class="mono" style="color:${e.totals.pnlUsd>=0?'var(--green)':'var(--red)'}">${e.totals.pnlUsd>=0?'+':''}${Number(e.totals.pnlUsd).toFixed(3)}</span>`;
+    rows.appendChild(r);
+  });
+  if(fills.length===0) rows.innerHTML='<div class="row"><span style="grid-column:1/-1;color:var(--muted);text-align:center;padding:16px">no fills yet — waiting for print to cross</span></div>';
+}
+
+// price canvas
+function drawPrice(){
+  const cvs = $("#priceCanvas");
+  const ctx = cvs.getContext("2d");
+  const dpr = devicePixelRatio||1;
+  const rect = cvs.getBoundingClientRect();
+  cvs.width = rect.width * dpr; cvs.height = rect.height * dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const W = rect.width, H = rect.height;
+  ctx.clearRect(0,0,W,H);
+  if(events.length<2) return;
+  const n = Math.min(events.length, Math.floor(W/6));
+  const slice = events.slice(-n);
+  let lo=Infinity, hi=-Infinity;
+  slice.forEach(e=>{ if(e.mid<lo) lo=e.mid; if(e.mid>hi) hi=e.mid; });
+  const pad = (hi-lo)*0.15 || lo*0.002;
+  lo-=pad; hi+=pad;
+  const range = hi-lo||1;
+  const X = i => 12 + (i/(n-1))*(W-24);
+  const Y = p => 28 + (1-(p-lo)/range)*(H-56);
+  // grid
+  ctx.strokeStyle="rgba(255,255,255,0.04)"; ctx.lineWidth=1;
+  for(let i=0;i<3;i++){ const y=28 + (H-56)*i/3; ctx.beginPath(); ctx.moveTo(12,y); ctx.lineTo(W-12,y); ctx.stroke();
+    ctx.fillStyle="rgba(138,148,168,0.5)"; ctx.font="10px JetBrains Mono"; ctx.textAlign="right"; ctx.fillText(fmtPrice(lo+(1-i/3)*range), W-14, y-6);
+  }
+  // area + line with glow
+  ctx.beginPath();
+  slice.forEach((e,i)=>{ const x=X(i), y=Y(e.mid); i===0? ctx.moveTo(x,y) : ctx.lineTo(x,y); });
+  ctx.strokeStyle="#7B6CF6"; ctx.lineWidth=2; ctx.shadowColor="rgba(123,108,246,0.8)"; ctx.shadowBlur=16; ctx.stroke(); ctx.shadowBlur=0;
+  // area fill
+  ctx.lineTo(X(n-1), H-28); ctx.lineTo(X(0), H-28); ctx.closePath();
+  const grad=ctx.createLinearGradient(0,28,0,H-28);
+  grad.addColorStop(0,"rgba(123,108,246,0.25)"); grad.addColorStop(1,"transparent");
+  ctx.fillStyle=grad; ctx.fill();
+  // SL/TP lines if position open
+  if(latest?.position?.entryPrice && riskCfg){
+    const entry = latest.position.entryPrice;
+    const isLong = latest.position.side==="long";
+    const sl = isLong ? entry*(1 - riskCfg.stopLossPct/100) : entry*(1 + riskCfg.stopLossPct/100);
+    const tp = isLong ? entry*(1 + riskCfg.takeProfitPct/100) : entry*(1 - riskCfg.takeProfitPct/100);
+    // only draw if within view
+    [ {p:sl, c:"rgba(255,59,92,0.9)", label:`SL -${riskCfg.stopLossPct}%`}, {p:tp, c:"rgba(0,255,136,0.9)", label:`TP +${riskCfg.takeProfitPct}%`} ].forEach(({p,c,label})=>{
+      const y=Y(p);
+      if(y<28 || y>H-28) return;
+      ctx.strokeStyle=c; ctx.setLineDash([6,4]); ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(12,y); ctx.lineTo(W-12,y); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle=c; ctx.font="10px JetBrains Mono"; ctx.textAlign="left"; ctx.fillText(label+" "+fmtPrice(p), 14, y-6);
+    });
+    // entry line
+    const ey=Y(entry);
+    if(ey>=28 && ey<=H-28){ ctx.strokeStyle="rgba(230,234,242,0.6)"; ctx.setLineDash([3,3]); ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(12,ey); ctx.lineTo(W-12,ey); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle="rgba(230,234,242,0.8)"; ctx.font="10px JetBrains Mono"; ctx.textAlign="left"; ctx.fillText("ENTRY "+fmtPrice(entry), 14, ey-6); }
+  }
+  // beads for fills
+  slice.forEach((e,i)=>{
+    if(!e.fill) return;
+    const x=X(i), y=Y(e.mid);
+    ctx.beginPath(); ctx.arc(x,y,3.5,0,Math.PI*2);
+    ctx.fillStyle = e.fill.side==="buy" ? "#00FF88" : "#FF3B5C";
+    ctx.shadowColor=ctx.fillStyle; ctx.shadowBlur=12; ctx.fill(); ctx.shadowBlur=0;
+    ctx.strokeStyle="rgba(255,255,255,0.9)"; ctx.lineWidth=1; ctx.stroke();
+  });
+  // live dot
+  if(slice.length){
+    const x=X(n-1), y=Y(slice[n-1].mid);
+    ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2); ctx.fillStyle="#E6EAF2"; ctx.fill();
+    ctx.beginPath(); ctx.arc(x,y,8,0,Math.PI*2); ctx.strokeStyle="rgba(123,108,246,0.5)"; ctx.lineWidth=1; ctx.stroke();
+  }
+  // block ticks
+  const tickY = H-18;
+  slice.forEach((e,i)=>{
+    const x=X(i);
+    ctx.fillStyle = e.decision?.late? "#FFB800" : e.decision?.action==="buy"? "#00FF88" : e.decision?.action==="sell"? "#FF3B5C" : "#3A4152";
+    ctx.fillRect(x-2.5, tickY, 5, 8);
+  });
+}
+
+function drawPnl(){
+  const cvs=$("#pnlCanvas"); const ctx=cvs.getContext("2d");
+  const dpr=devicePixelRatio||1; const rect=cvs.getBoundingClientRect();
+  cvs.width=rect.width*dpr; cvs.height=rect.height*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+  const W=rect.width, H=rect.height;
+  ctx.clearRect(0,0,W,H);
+  if(pnlHistory.length<2) return;
+  let lo=Math.min(...pnlHistory), hi=Math.max(...pnlHistory);
+  if(hi-lo<0.001) { hi+=0.0005; lo-=0.0005; }
+  const range=hi-lo;
+  const X=i=> (i/(pnlHistory.length-1))*W;
+  const Y=v=> 8 + (1-(v-lo)/range)*(H-16);
+  // zero line
+  const zeroY = Y(0);
+  if(zeroY>8 && zeroY<H-8){ ctx.strokeStyle="rgba(255,255,255,0.08)"; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(0,zeroY); ctx.lineTo(W,zeroY); ctx.stroke(); ctx.setLineDash([]); }
+  // line
+  ctx.beginPath();
+  pnlHistory.forEach((v,i)=>{ const x=X(i), y=Y(v); i===0? ctx.moveTo(x,y) : ctx.lineTo(x,y); });
+  const isPos = pnlHistory[pnlHistory.length-1]>=0;
+  ctx.strokeStyle = isPos ? "#00FF88" : "#FF3B5C";
+  ctx.lineWidth=2; ctx.shadowColor=ctx.strokeStyle; ctx.shadowBlur=10; ctx.stroke(); ctx.shadowBlur=0;
+  // fill
+  ctx.lineTo(X(pnlHistory.length-1), H-8); ctx.lineTo(X(0), H-8); ctx.closePath();
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0, isPos? "rgba(0,255,136,0.25)" : "rgba(255,59,92,0.25)"); g.addColorStop(1,"transparent");
+  ctx.fillStyle=g; ctx.fill();
+}
+
+// ---- RISK CONTROLS ----
+let riskCfg = null;
+let usePctMode = true;
+function midNow(){ return latest?.mid ?? 0.0289; }
+function calcPreview(){
+  const bankroll = Number($("#bankroll").value) || 100;
+  const riskPct = Number($("#riskPct").value) || 10;
+  const lev = Number($("#leverage").value) || 2;
+  const mid = midNow();
+  const riskUsd = bankroll * riskPct / 100;
+  const size = Math.max(200, Math.round((riskUsd / mid) * lev));
+  const max = size * 5;
+  $("#riskPctVal").textContent = riskPct + "%";
+  $("#riskUsdDisp").textContent = "$" + riskUsd.toFixed(2);
+  $("#riskMonDisp").textContent = "~" + size.toLocaleString() + " MON";
+  $("#riskUsd").value = riskUsd.toFixed(2);
+  $("#levDisp").textContent = lev + "x";
+  $("#levVal").textContent = lev + "x";
+  $("#calcSize").textContent = size.toLocaleString() + " MON / $" + riskUsd.toFixed(2);
+  $("#calcMax").textContent = "max " + max.toLocaleString() + " MON • " + (max/size|0) + " trades";
+  $("#ticksVal").textContent = $("#quoteTicks").value;
+  // exit preview
+  const sl = Number($("#stopLoss")?.value)||3, tp = Number($("#takeProfit")?.value)||6, trail = Number($("#trailing")?.value)||1.5, time = Number($("#timeStop")?.value)||300;
+  if($("#slVal")) $("#slVal").textContent = sl+"%";
+  if($("#tpVal")) $("#tpVal").textContent = tp+"%";
+  if($("#trailVal")) $("#trailVal").textContent = trail+"%";
+  if($("#timeVal")) $("#timeVal").textContent = time;
+  if($("#slDisp")) $("#slDisp").textContent = sl+"%";
+  if($("#tpDisp")) $("#tpDisp").textContent = tp+"%";
+  if($("#rrDisp")) $("#rrDisp").textContent = (tp/sl).toFixed(1);
+  if($("#trailDisp")) $("#trailDisp").textContent = trail+"%";
+  if($("#timeDisp")) $("#timeDisp").textContent = time==0?"off": Math.round(time*0.3)+"s ("+time+" blocks)";
+  $("#riskSave").textContent = `💾 SAVE — APPLY LIVE (${riskPct}% * ${lev}x = ${size} MON • SL ${sl}% TP ${tp}%)`;
+  // fixed preview
+  if(!usePctMode){
+    const fSize = Number($("#fixedSize").value)||500;
+    const fMax = Number($("#maxPos").value)||2500;
+    $("#calcSize").textContent = fSize.toLocaleString() + " MON FIXED";
+    $("#calcMax").textContent = "max " + fMax.toLocaleString() + " MON";
+  }
+}
+function setMode(pct){
+  usePctMode = pct;
+  $("#modePct").classList.toggle("on", pct);
+  $("#modeFixed").classList.toggle("on", !pct);
+  $("#fixedRow").style.display = pct ? "none" : "grid";
+  // hide/show pct controls opacity?
+  document.querySelectorAll("#riskPct, #riskUsd, #bankroll, #leverage").forEach(el=> el.closest(".riskBox").style.opacity = pct ? "1" : "0.5");
+  calcPreview();
+}
+function applyPreset(k){
+  const presets = {
+    conservative:{riskPct:2, leverage:2, bankrollUsd:100, quoteInsideTicks:1, stopLossPct:2, takeProfitPct:4, trailingPct:1, timeStopBlocks:300},
+    god:{riskPct:10, leverage:2, bankrollUsd:100, quoteInsideTicks:1, stopLossPct:3, takeProfitPct:6, trailingPct:1.5, timeStopBlocks:300},
+    degen:{riskPct:25, leverage:5, bankrollUsd:100, quoteInsideTicks:1, stopLossPct:4, takeProfitPct:10, trailingPct:2, timeStopBlocks:200},
+    max:{riskPct:50, leverage:10, bankrollUsd:100, quoteInsideTicks:0, stopLossPct:5, takeProfitPct:10, trailingPct:0, timeStopBlocks:0},
+  };
+  const p = presets[k]; if(!p) return;
+  $("#riskPct").value = p.riskPct; $("#leverage").value = p.leverage; $("#bankroll").value = p.bankrollUsd; $("#quoteTicks").value = p.quoteInsideTicks;
+  if($("#stopLoss")) $("#stopLoss").value = p.stopLossPct;
+  if($("#takeProfit")) $("#takeProfit").value = p.takeProfitPct;
+  if($("#trailing")) $("#trailing").value = p.trailingPct;
+  if($("#timeStop")) $("#timeStop").value = p.timeStopBlocks;
+  document.querySelectorAll(".preset").forEach(el=>el.classList.remove("active"));
+  event?.target?.classList.add("active");
+  setMode(true); calcPreview();
+  // auto save
+  saveRisk();
+}
+async function loadRisk(){
+  try{
+    const r = await (await fetch(API+"/api/risk")).json();
+    riskCfg = r;
+    $("#bankroll").value = r.bankrollUsd;
+    $("#riskPct").value = r.riskPct;
+    $("#riskUsd").value = r.riskUsd;
+    $("#leverage").value = r.leverage;
+    $("#quoteTicks").value = r.quoteInsideTicks;
+    $("#fixedSize").value = r.tradeSizeMon;
+    $("#maxPos").value = r.maxPositionMon;
+    if($("#stopLoss")) $("#stopLoss").value = r.stopLossPct ?? 3;
+    if($("#takeProfit")) $("#takeProfit").value = r.takeProfitPct ?? 6;
+    if($("#trailing")) $("#trailing").value = r.trailingPct ?? 1.5;
+    if($("#timeStop")) $("#timeStop").value = r.timeStopBlocks ?? 300;
+    setMode(r.usePct);
+    calcPreview();
+    $("#riskStatus").textContent = `live: ${r.riskPct}% * ${r.leverage}x • SL ${r.stopLossPct}% TP ${r.takeProfitPct}%`;
+    $("#riskStatus").style.color = "var(--green)";
+  }catch(e){ $("#riskStatus").textContent = "offline"; }
+}
+async function saveRisk(){
+  const btn = $("#riskSave"); btn.disabled = true; btn.textContent = "⏳ SAVING...";
+  const exitBase = {
+    stopLossPct: Number($("#stopLoss")?.value ?? 3),
+    takeProfitPct: Number($("#takeProfit")?.value ?? 6),
+    trailingPct: Number($("#trailing")?.value ?? 1.5),
+    timeStopBlocks: Number($("#timeStop")?.value ?? 300),
+  };
+  const payload = usePctMode ? {
+    bankrollUsd: Number($("#bankroll").value),
+    riskPct: Number($("#riskPct").value),
+    leverage: Number($("#leverage").value),
+    quoteInsideTicks: Number($("#quoteTicks").value),
+    usePct: true, ...exitBase
+  } : {
+    tradeSizeMon: Number($("#fixedSize").value),
+    maxPositionMon: Number($("#maxPos").value),
+    quoteInsideTicks: Number($("#quoteTicks").value),
+    bankrollUsd: Number($("#bankroll").value),
+    leverage: Number($("#leverage").value),
+    usePct: false, ...exitBase
+  };
+  try{
+    const res = await fetch(API+"/api/risk", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(payload)});
+    const j = await res.json();
+    if(j.ok){
+      riskCfg = j.risk;
+      $("#riskStatus").textContent = `✅ saved: ${j.risk.riskPct}% * ${j.risk.leverage}x • SL ${j.risk.stopLossPct}% TP ${j.risk.takeProfitPct}%`;
+      $("#riskStatus").style.color = "var(--green)";
+      localStorage.setItem("riskCfg", JSON.stringify(j.risk));
+      btn.textContent = `✅ SAVED — ${j.risk.tradeSizeMon} MON • SL/TP LIVE`;
+      setTimeout(()=> calcPreview(), 1500);
+    } else throw new Error(j.error);
+  }catch(e){
+    $("#riskStatus").textContent = "❌ save failed";
+    $("#riskStatus").style.color = "var(--red)";
+    btn.textContent = "❌ FAILED — TRY AGAIN";
+  } finally { btn.disabled = false; setTimeout(()=> calcPreview(), 2000); }
+}
+// bind live preview
+["bankroll","riskPct","leverage","quoteTicks","fixedSize","maxPos","stopLoss","takeProfit","trailing","timeStop"].forEach(id=>{
+  document.addEventListener("input", (e)=>{ if(e.target.id===id) calcPreview(); });
+});
+document.addEventListener("input", (e)=>{
+  if(e.target.id==="riskUsd"){
+    const bankroll = Number($("#bankroll").value)||100;
+    const usd = Number(e.target.value)||10;
+    const pct = Math.round(usd / bankroll * 100 *10)/10;
+    $("#riskPct").value = Math.max(1, Math.min(50, pct));
+    calcPreview();
+  }
+});
+
+async function init(){
+  try{
+    // real exchange fees from chain
+    try{ const f=await (await fetch(API+"/api/fees")).json(); $("#footTaker").textContent=f.takerFeeBps; $("#footTakerPct").textContent=(f.takerFeeBps/100).toFixed(2); $("#footMaker").textContent=f.makerFeeBps; $("#footMakerPct").textContent=(f.makerFeeBps/100).toFixed(2); $("#footMarket").textContent=f.market.slice(0,10)+"..."; }catch{}
+    const r = await fetch(API+"/history");
+    const h = await r.json();
+    events = Array.isArray(h)? h : [];
+    events.forEach(e=> pnlHistory.push(e.totals.pnlUsd));
+    if(pnlHistory.length>400) pnlHistory = pnlHistory.slice(-400);
+    const s = await (await fetch(API+"/")).json();
+    meta=s; latest=s.latest || s.history?.at(-1) || null;
+    // load risk after meta
+    await loadRisk();
+    calcPreview();
+    if(latest) { events.push(latest); pnlHistory.push(latest.totals.pnlUsd); }
+    $("#modelBadge").textContent = meta.model || "—";
+    $("#modelBadge").className = "badge "+(meta.model?.includes("god")||meta.model?.includes("printer")?"badge-god":"badge-mock");
+    $("#walletPill").textContent = meta.wallet ? meta.wallet.slice(0,6)+"…"+meta.wallet.slice(-4) : "dry run • sim";
+    $("#marketPill").textContent = (meta.market? meta.market.slice(0,6)+"…": "MON-USDC")+" • KURU";
+    document._avgLat = events.filter(e=>e.decision && !e.decision.late).slice(-20).reduce((a,e)=>a+e.decision.latencyMs,0)/20|0;
+    renderStats(); renderDecision(); renderFeed(); drawPrice(); drawPnl();
+  }catch(e){ console.error(e); $("#connPill").textContent="● RECONNECTING"; $("#connPill").style.color="var(--amber)"; }
+
+  const es = new EventSource(API+"/events");
+  es.addEventListener("snapshot", e=>{
+    try{ const d=JSON.parse(e.data); meta=d; events=d.history||[]; pnlHistory=events.map(x=>x.totals.pnlUsd); if(events.length) latest=events[events.length-1]; renderStats(); renderDecision(); renderFeed(); drawPrice(); drawPnl(); }catch{}
+  });
+  es.addEventListener("block", e=>{
+    try{
+      const b=JSON.parse(e.data);
+      events.push(b); if(events.length>800) events.shift();
+      pnlHistory.push(b.totals.pnlUsd); if(pnlHistory.length>400) pnlHistory.shift();
+      latest=b;
+      document._avgLat = events.filter(x=>x.decision && !x.decision.late).slice(-20).reduce((a,x)=>a+x.decision.latencyMs,0)/20|0;
+      renderStats(); renderDecision(); renderFeed(); drawPrice(); drawPnl();
+    }catch{}
+  });
+  es.addEventListener("fill", e=>{ try{ const d=JSON.parse(e.data); const idx=events.findIndex(x=>x.block===d.block); if(idx>=0) events[idx].fill=d.fill; renderFeed(); drawPrice(); }catch{} });
+  es.addEventListener("open", ()=>{ $("#connPill").textContent="● LIVE"; $("#connPill").style.color="var(--green)"; });
+  es.onerror=()=>{ $("#connPill").textContent="● RECONNECTING"; $("#connPill").style.color="var(--amber)"; };
+
+  // resize
+  addEventListener("resize", ()=>{ drawPrice(); drawPnl(); });
+}
+
+// avg latency helper
+document._avgLat=0;
+init();
+setInterval(()=>{ drawPrice(); drawPnl(); }, 1000);
+</script>
+</body>
+</html>

@@ -28,9 +28,20 @@ export const config = {
   pendingBlocks: 10, // give up on a tx with no receipt after this many blocks
   refreshBlocks: 200, // how often to refresh the fee estimate, margin balances and the vault check
   horizonBlocks: Number(env("HORIZON_BLOCKS", "100")), // the model is asked about the move over this many blocks (~30 s)
-  model: env("MODEL", "mock") as "mock" | "jev",
+  model: env("MODEL", "mock") as "mock" | "jev" | "printer",
   jevModelId: env("JEV_MODEL_ID", "jev-latest")!,
   jevUsdPerMTok: 0.042,
+  // Kuru fees — per-market, fixed at creation; read live from chain via getMarketParams (takerFeeBps/makerFeeBps), env overrides fallback for sim
+  kuruTakerFeeBps: Number(env("KURU_TAKER_FEE_BPS", "30")), // 0.30% — example from Kuru SDK (MON-USDC likely similar)
+  kuruMakerFeeBps: Number(env("KURU_MAKER_FEE_BPS", "10")), // 0.10% — maker
+  // Money printer / God mode — creative experimental strategy
+  moneyPrinter: env("MONEY_PRINTER") === "true" || env("GOD_MODE") === "true" || env("MODEL") === "printer",
+  // Base URL for Jev API — defaults to TypeSafe, override for free BeatAPI:
+  // BeatAPI free: https://api.beatapi.io/v1  (model jev-1.13-free, no balance needed)
+  // Set TYPESAFE_AI_BASE_URL or JEV_BASE_URL to switch without code change.
+  jevBaseUrl: env("TYPESAFE_AI_BASE_URL") ?? env("JEV_BASE_URL") ?? env("BEATAPI_BASE_URL") ?? "https://api.typesafe.ai/v1",
+  // API key alias: TYPESAFE_AI_API_KEY is read by the SDK, BEATAPI_API_KEY is alias for free tier
+  jevApiKey: env("TYPESAFE_AI_API_KEY") ?? env("BEATAPI_API_KEY"),
   port: Number(env("PORT", "3000")),
   historySize: 1000,
 };

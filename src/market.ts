@@ -3,6 +3,7 @@ import * as Kuru from "@kuru-labs/kuru-sdk";
 import OrderBookAbi from "@kuru-labs/kuru-sdk/abi/OrderBook.json";
 import MarginAccountAbi from "@kuru-labs/kuru-sdk/abi/MarginAccount.json";
 import { config } from "./config";
+import { getQuoteInsideTicks } from "./risk";
 import { rpc } from "./chain";
 import { readBook as fetchBook, readVaultParams, vaultActive, log10 } from "./book";
 
@@ -48,6 +49,9 @@ export interface Fill {
   txHash: string | null; // the taker's transaction
   orderId: number;
   simulated: boolean;
+  feeUsd?: number; // Kuru fee in USD (notional * feeBps / 10000)
+  feeBps?: number;
+  isTaker?: boolean; // true = we took (exit), false = we made (passive)
 }
 
 export interface QuoteResult { block: number; quote: Quote; canceled: number[] }
@@ -85,8 +89,19 @@ export class Market {
   private get sizeDec() { return log10(this.params.sizePrecision); }
   private get tickUnits() { return Number(this.params.tickSize.toString()); }
 
+  get takerFeeBps(): number {
+    try { return Number((this.params as any).takerFeeBps?.toString() ?? config.kuruTakerFeeBps); } catch { return config.kuruTakerFeeBps; }
+  }
+  get makerFeeBps(): number {
+    try { return Number((this.params as any).makerFeeBps?.toString() ?? config.kuruMakerFeeBps); } catch { return config.kuruMakerFeeBps; }
+  }
+  get fees() { return { taker: this.takerFeeBps, maker: this.makerFeeBps }; }
+
   async init() {
     this.params = await Kuru.ParamFetcher.getMarketParams(this.provider, config.market);
+    // sync REAL exchange fees to config so /api/fees and trader use exact chain values
+    try { (config as any).kuruTakerFeeBps = Number((this.params as any).takerFeeBps.toString()); (config as any).kuruMakerFeeBps = Number((this.params as any).makerFeeBps.toString()); } catch {}
+    console.log(`market fees · REAL EXCHANGE · taker ${this.takerFeeBps} bps (${(this.takerFeeBps/100).toFixed(2)}%) · maker ${this.makerFeeBps} bps (${(this.makerFeeBps/100).toFixed(2)}%) · tick ${this.tickUnits} · priceDec ${this.priceDec} sizeDec ${this.sizeDec}`);
     await this.refresh();
     if (!this.wallet) return;
     await this.resyncNonce();
@@ -121,7 +136,7 @@ export class Market {
   quotePrice(side: Side, book: Book): number {
     const scale = 10 ** this.priceDec, tick = this.tickUnits;
     const bidU = Math.round(book.bid * scale), askU = Math.round(book.ask * scale);
-    const step = config.quoteInsideTicks * tick;
+    const step = getQuoteInsideTicks() * tick;
     let p = side === "buy" ? bidU + step : askU - step;
     if (side === "buy" && p >= askU) p = bidU;
     if (side === "sell" && p <= bidU) p = askU;
