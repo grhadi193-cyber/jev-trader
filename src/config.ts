@@ -31,6 +31,12 @@ export const config = {
   model: env("MODEL", "mock") as "mock" | "jev",
   jevModelId: env("JEV_MODEL_ID", "jev-latest")!,
   jevUsdPerMTok: 0.042,
+  // Base URL for Jev API — defaults to TypeSafe, override for free BeatAPI:
+  // BeatAPI free: https://api.beatapi.io/v1  (model jev-1.13-free, no balance needed)
+  // Set TYPESAFE_AI_BASE_URL or JEV_BASE_URL to switch without code change.
+  jevBaseUrl: env("TYPESAFE_AI_BASE_URL") ?? env("JEV_BASE_URL") ?? env("BEATAPI_BASE_URL") ?? "https://api.typesafe.ai/v1",
+  // API key alias: TYPESAFE_AI_API_KEY is read by the SDK, BEATAPI_API_KEY is alias for free tier
+  jevApiKey: env("TYPESAFE_AI_API_KEY") ?? env("BEATAPI_API_KEY"),
   port: Number(env("PORT", "3000")),
   historySize: 1000,
 };

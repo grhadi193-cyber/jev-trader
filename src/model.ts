@@ -1,5 +1,5 @@
 import { experimental_evaluate } from "ai";
-import { typeSafeAi } from "@ai-sdk/typesafe-ai";
+import { createTypeSafeAi } from "@ai-sdk/typesafe-ai";
 import { config } from "./config";
 
 /** Models answer buy or sell. `hold` only appears on late blocks (no decision was made). */
@@ -56,9 +56,14 @@ const QUESTIONS = {
 } as const;
 
 /** Real Jev via the AI SDK. Swap-in is the MODEL env var. */
+/** Supports custom base URL for BeatAPI free tier: set TYPESAFE_AI_BASE_URL=https://api.beatapi.io/v1 */
 export class JevModel implements Model {
   readonly name = config.jevModelId;
-  private model = typeSafeAi.evaluationModel(config.jevModelId);
+  private provider = createTypeSafeAi({
+    baseURL: config.jevBaseUrl,
+    apiKey: config.jevApiKey,
+  });
+  private model = this.provider.evaluationModel(config.jevModelId);
 
   async decide(state: TradeState): Promise<Decision> {
     const t0 = performance.now();
