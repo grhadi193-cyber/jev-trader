@@ -131,6 +131,26 @@ body::after{
 .pnlWrap{height:120px;position:relative;background:rgba(0,0,0,0.2);border-radius:10px;border:1px solid var(--border);overflow:hidden;margin-top:12px}
 .pnlWrap canvas{position:absolute;inset:0;width:100%;height:100%}
 
+/* risk controls */
+.riskGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.riskBox{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:10px}
+.riskBox label{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--dim);font-weight:700;display:block;margin-bottom:6px}
+.riskBox input[type=range]{width:100%;accent-color:var(--purple);height:4px}
+.riskBox input[type=number]{width:100%;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;color:var(--ink);font-family:"JetBrains Mono",monospace;font-size:13px;padding:7px 8px;outline:none}
+.riskBox input[type=number]:focus{border-color:var(--purple);box-shadow:0 0 0 2px rgba(123,108,246,0.2)}
+.riskVal{font-family:"JetBrains Mono",monospace;font-size:14px;font-weight:800;color:var(--ink)}
+.riskSub{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--muted);margin-top:2px}
+.riskSave{width:100%;margin-top:10px;background:linear-gradient(135deg, #7B6CF6, #00E5CC);color:white;border:none;border-radius:10px;padding:10px 12px;font-weight:800;letter-spacing:0.06em;font-size:12px;cursor:pointer;box-shadow:0 0 16px rgba(123,108,246,0.4);transition:transform 0.1s}
+.riskSave:active{transform:scale(0.99)}
+.riskSave:disabled{opacity:0.6;cursor:not-allowed}
+.presetRow{display:flex;gap:6px;margin-top:8px}
+.preset{flex:1;font-family:"JetBrains Mono",monospace;font-size:10px;padding:6px 4px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:var(--muted);cursor:pointer;text-align:center}
+.preset:hover{border-color:var(--purple);color:var(--ink)}
+.preset.active{background:rgba(123,108,246,0.2);border-color:var(--purple);color:white}
+.modeToggle{display:flex;gap:6px;margin-top:8px}
+.modeToggle button{flex:1;padding:6px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:var(--muted);font-family:"JetBrains Mono",monospace;font-size:11px;cursor:pointer}
+.modeToggle button.on{background:var(--purple);color:white;border-color:var(--purple)}
+
 /* footer */
 .foot{margin-top:14px;padding:10px 14px;border:1px dashed var(--border);border-radius:12px;background:rgba(255,255,255,0.02);font-size:11px;color:var(--muted);line-height:1.5}
 .foot strong{color:var(--amber)}
@@ -176,6 +196,73 @@ body::after{
     </div>
 
     <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+      <div class="card" id="riskCard">
+        <div class="card-hd"><i style="background:var(--purple)"></i> RISK // CONTROLS <span class="mono" style="margin-left:auto;font-size:10px;color:var(--dim)">LIVE SAVE → /api/risk</span></div>
+        <div class="card-bd">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span class="mono" style="font-size:10px;color:var(--dim)">MODE</span>
+            <div class="modeToggle" style="margin-top:0">
+              <button id="modePct" class="on" onclick="setMode(true)">% PERCENT</button>
+              <button id="modeFixed" onclick="setMode(false)">FIXED MON</button>
+            </div>
+            <span id="riskStatus" class="mono" style="margin-left:auto;font-size:10px;color:var(--muted)">—</span>
+          </div>
+          <div class="riskGrid">
+            <div class="riskBox">
+              <label>Bankroll $</label>
+              <input type="number" id="bankroll" min="10" max="100000" step="10" value="100">
+              <div class="riskSub">حساب کل — 10% از 100$ = $10</div>
+            </div>
+            <div class="riskBox">
+              <label>Leverage <span id="levVal" class="riskVal" style="font-size:11px"></span></label>
+              <input type="range" id="leverage" min="1" max="10" step="1" value="2">
+              <div class="riskSub"><span id="levDisp">2x</span> • maxPos = size ×5</div>
+            </div>
+          </div>
+          <div class="riskGrid">
+            <div class="riskBox">
+              <label>Risk per trade % <span id="riskPctVal" class="riskVal">10%</span></label>
+              <input type="range" id="riskPct" min="1" max="50" step="0.5" value="10">
+              <div class="riskSub"><span id="riskUsdDisp">$10.00</span> • <span id="riskMonDisp">~346 MON</span></div>
+            </div>
+            <div class="riskBox">
+              <label>Risk $ amount</label>
+              <input type="number" id="riskUsd" min="1" max="50000" step="1" value="10">
+              <div class="riskSub">sync با %</div>
+            </div>
+          </div>
+          <div class="riskGrid" id="fixedRow" style="display:none">
+            <div class="riskBox">
+              <label>Fixed Trade Size MON</label>
+              <input type="number" id="fixedSize" min="200" max="10000" step="100" value="500">
+            </div>
+            <div class="riskBox">
+              <label>Max Position MON</label>
+              <input type="number" id="maxPos" min="200" max="20000" step="100" value="2500">
+            </div>
+          </div>
+          <div class="riskGrid">
+            <div class="riskBox">
+              <label>Quote Inside Ticks <span id="ticksVal" class="riskVal">1</span></label>
+              <input type="range" id="quoteTicks" min="0" max="3" step="1" value="1">
+              <div class="riskSub">0=join • 1=inside (fill بیشتر)</div>
+            </div>
+            <div class="riskBox" style="display:flex;flex-direction:column;justify-content:center">
+              <div class="mono" style="font-size:11px;color:var(--muted)">CALCULATED</div>
+              <div class="riskVal" id="calcSize">346 MON / $10.00</div>
+              <div class="riskSub" id="calcMax">max 1,730 MON • 5 trades</div>
+            </div>
+          </div>
+          <div class="presetRow">
+            <div class="preset" onclick="applyPreset('conservative')">🛡️ 2% 2x</div>
+            <div class="preset active" onclick="applyPreset('god')">👑 10% 2x GOD</div>
+            <div class="preset" onclick="applyPreset('degen')">🔥 25% 5x</div>
+            <div class="preset" onclick="applyPreset('max')">💀 50% 10x MAX</div>
+          </div>
+          <button class="riskSave" id="riskSave" onclick="saveRisk()">💾 SAVE — APPLY LIVE</button>
+          <div class="mono" style="font-size:10px;color:var(--dim);margin-top:6px;text-align:center">ذخیره رو سرور (data/risk.json) + بلاک بعدی با ریسک جدید</div>
+        </div>
+      </div>
       <div class="card">
         <div class="card-hd"><i style="background:var(--cyan)"></i> DECISION // GOD BRAIN</div>
         <div class="decision" id="decisionBox">
@@ -387,6 +474,124 @@ function drawPnl(){
   ctx.fillStyle=g; ctx.fill();
 }
 
+// ---- RISK CONTROLS ----
+let riskCfg = null;
+let usePctMode = true;
+function midNow(){ return latest?.mid ?? 0.0289; }
+function calcPreview(){
+  const bankroll = Number($("#bankroll").value) || 100;
+  const riskPct = Number($("#riskPct").value) || 10;
+  const lev = Number($("#leverage").value) || 2;
+  const mid = midNow();
+  const riskUsd = bankroll * riskPct / 100;
+  const size = Math.max(200, Math.round((riskUsd / mid) * lev));
+  const max = size * 5;
+  $("#riskPctVal").textContent = riskPct + "%";
+  $("#riskUsdDisp").textContent = "$" + riskUsd.toFixed(2);
+  $("#riskMonDisp").textContent = "~" + size.toLocaleString() + " MON";
+  $("#riskUsd").value = riskUsd.toFixed(2);
+  $("#levDisp").textContent = lev + "x";
+  $("#levVal").textContent = lev + "x";
+  $("#calcSize").textContent = size.toLocaleString() + " MON / $" + riskUsd.toFixed(2);
+  $("#calcMax").textContent = "max " + max.toLocaleString() + " MON • " + (max/size|0) + " trades";
+  $("#ticksVal").textContent = $("#quoteTicks").value;
+  $("#riskSave").textContent = `💾 SAVE — APPLY LIVE (${riskPct}% * ${lev}x = ${size} MON)`;
+  // fixed preview
+  if(!usePctMode){
+    const fSize = Number($("#fixedSize").value)||500;
+    const fMax = Number($("#maxPos").value)||2500;
+    $("#calcSize").textContent = fSize.toLocaleString() + " MON FIXED";
+    $("#calcMax").textContent = "max " + fMax.toLocaleString() + " MON";
+  }
+}
+function setMode(pct){
+  usePctMode = pct;
+  $("#modePct").classList.toggle("on", pct);
+  $("#modeFixed").classList.toggle("on", !pct);
+  $("#fixedRow").style.display = pct ? "none" : "grid";
+  // hide/show pct controls opacity?
+  document.querySelectorAll("#riskPct, #riskUsd, #bankroll, #leverage").forEach(el=> el.closest(".riskBox").style.opacity = pct ? "1" : "0.5");
+  calcPreview();
+}
+function applyPreset(k){
+  const presets = {
+    conservative:{riskPct:2, leverage:2, bankrollUsd:100, quoteInsideTicks:1},
+    god:{riskPct:10, leverage:2, bankrollUsd:100, quoteInsideTicks:1},
+    degen:{riskPct:25, leverage:5, bankrollUsd:100, quoteInsideTicks:1},
+    max:{riskPct:50, leverage:10, bankrollUsd:100, quoteInsideTicks:0},
+  };
+  const p = presets[k]; if(!p) return;
+  $("#riskPct").value = p.riskPct; $("#leverage").value = p.leverage; $("#bankroll").value = p.bankrollUsd; $("#quoteTicks").value = p.quoteInsideTicks;
+  document.querySelectorAll(".preset").forEach(el=>el.classList.remove("active"));
+  event?.target?.classList.add("active");
+  setMode(true); calcPreview();
+  // auto save
+  saveRisk();
+}
+async function loadRisk(){
+  try{
+    const r = await (await fetch(API+"/api/risk")).json();
+    riskCfg = r;
+    $("#bankroll").value = r.bankrollUsd;
+    $("#riskPct").value = r.riskPct;
+    $("#riskUsd").value = r.riskUsd;
+    $("#leverage").value = r.leverage;
+    $("#quoteTicks").value = r.quoteInsideTicks;
+    $("#fixedSize").value = r.tradeSizeMon;
+    $("#maxPos").value = r.maxPositionMon;
+    setMode(r.usePct);
+    calcPreview();
+    $("#riskStatus").textContent = `live: ${r.riskPct}% * ${r.leverage}x • ${r.tradeSizeMon} MON`;
+    $("#riskStatus").style.color = "var(--green)";
+  }catch(e){ $("#riskStatus").textContent = "offline"; }
+}
+async function saveRisk(){
+  const btn = $("#riskSave"); btn.disabled = true; btn.textContent = "⏳ SAVING...";
+  const payload = usePctMode ? {
+    bankrollUsd: Number($("#bankroll").value),
+    riskPct: Number($("#riskPct").value),
+    leverage: Number($("#leverage").value),
+    quoteInsideTicks: Number($("#quoteTicks").value),
+    usePct: true
+  } : {
+    tradeSizeMon: Number($("#fixedSize").value),
+    maxPositionMon: Number($("#maxPos").value),
+    quoteInsideTicks: Number($("#quoteTicks").value),
+    bankrollUsd: Number($("#bankroll").value),
+    leverage: Number($("#leverage").value),
+    usePct: false
+  };
+  try{
+    const res = await fetch(API+"/api/risk", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(payload)});
+    const j = await res.json();
+    if(j.ok){
+      riskCfg = j.risk;
+      $("#riskStatus").textContent = `✅ saved: ${j.risk.riskPct}% * ${j.risk.leverage}x • ${j.risk.tradeSizeMon} MON`;
+      $("#riskStatus").style.color = "var(--green)";
+      localStorage.setItem("riskCfg", JSON.stringify(j.risk));
+      btn.textContent = `✅ SAVED — ${j.risk.tradeSizeMon} MON/trade LIVE`;
+      setTimeout(()=> calcPreview(), 1500);
+    } else throw new Error(j.error);
+  }catch(e){
+    $("#riskStatus").textContent = "❌ save failed";
+    $("#riskStatus").style.color = "var(--red)";
+    btn.textContent = "❌ FAILED — TRY AGAIN";
+  } finally { btn.disabled = false; setTimeout(()=> calcPreview(), 2000); }
+}
+// bind live preview
+["bankroll","riskPct","leverage","quoteTicks","fixedSize","maxPos"].forEach(id=>{
+  document.addEventListener("input", (e)=>{ if(e.target.id===id) calcPreview(); });
+});
+document.addEventListener("input", (e)=>{
+  if(e.target.id==="riskUsd"){
+    const bankroll = Number($("#bankroll").value)||100;
+    const usd = Number(e.target.value)||10;
+    const pct = Math.round(usd / bankroll * 100 *10)/10;
+    $("#riskPct").value = Math.max(1, Math.min(50, pct));
+    calcPreview();
+  }
+});
+
 async function init(){
   try{
     const r = await fetch(API+"/history");
@@ -395,7 +600,10 @@ async function init(){
     events.forEach(e=> pnlHistory.push(e.totals.pnlUsd));
     if(pnlHistory.length>400) pnlHistory = pnlHistory.slice(-400);
     const s = await (await fetch(API+"/")).json();
-    meta=s; latest=s.latest;
+    meta=s; latest=s.latest || s.history?.at(-1) || null;
+    // load risk after meta
+    await loadRisk();
+    calcPreview();
     if(latest) { events.push(latest); pnlHistory.push(latest.totals.pnlUsd); }
     $("#modelBadge").textContent = meta.model || "—";
     $("#modelBadge").className = "badge "+(meta.model?.includes("god")||meta.model?.includes("printer")?"badge-god":"badge-mock");

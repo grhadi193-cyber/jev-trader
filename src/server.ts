@@ -1,13 +1,14 @@
 import { config } from "./config";
+import { getRisk, saveRisk, loadRisk } from "./risk";
 import type { Fill, Quote } from "./market";
 import type { BlockEvent } from "./trader";
 
 interface Meta { model: string; wallet: string | null; dryRun: boolean; market: string; startedAt: number }
 
-const CORS = { "access-control-allow-origin": "*", "access-control-allow-headers": "*" };
+const CORS = { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "GET, POST, OPTIONS" };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...CORS, "content-type": "application/json" } });
 
-/** GET / snapshot · GET /history recent blocks · GET /events SSE stream (`snapshot`, `block`, `quote`, `fill`, `ping`) + /dashboard technological UI */
+/** GET / snapshot · GET /history · GET /dashboard · GET /api/risk · POST /api/risk · GET /events SSE */
 export function startServer(meta: Meta, history: () => BlockEvent[]) {
   const clients = new Set<ReadableStreamDefaultController<Uint8Array>>();
   const enc = new TextEncoder();
@@ -16,14 +17,27 @@ export function startServer(meta: Meta, history: () => BlockEvent[]) {
   };
   setInterval(() => clients.forEach((c) => send(c, "ping", Date.now())), 15_000);
 
+  // init risk from file/env
+  loadRisk();
+
   Bun.serve({
     port: config.port,
     hostname: "0.0.0.0",
-    fetch(req) {
+    async fetch(req) {
       const { pathname } = new URL(req.url);
       if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
-      if (pathname === "/") return json({ ...meta, latest: history().at(-1) ?? null });
+      if (pathname === "/") return json({ ...meta, latest: history().at(-1) ?? null, risk: getRisk() });
       if (pathname === "/history") return json(history());
+      if (pathname === "/api/risk" && req.method === "GET") return json(getRisk());
+      if (pathname === "/api/risk" && req.method === "POST") {
+        try {
+          const body = await req.json() as any;
+          const latest = history().at(-1);
+          const mid = latest?.mid ?? 0.0289;
+          const saved = saveRisk(body, mid);
+          return json({ ok: true, risk: saved });
+        } catch (e) { return json({ ok: false, error: String(e) }, 400); }
+      }
       if (pathname === "/dashboard" || pathname === "/app" || pathname === "/god") {
         const html = Bun.file(import.meta.dir + "/dashboard.html");
         return new Response(html, { headers: { "content-type": "text/html; charset=utf-8", ...CORS } });

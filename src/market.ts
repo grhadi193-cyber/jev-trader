@@ -3,6 +3,7 @@ import * as Kuru from "@kuru-labs/kuru-sdk";
 import OrderBookAbi from "@kuru-labs/kuru-sdk/abi/OrderBook.json";
 import MarginAccountAbi from "@kuru-labs/kuru-sdk/abi/MarginAccount.json";
 import { config } from "./config";
+import { getQuoteInsideTicks } from "./risk";
 import { rpc } from "./chain";
 import { readBook as fetchBook, readVaultParams, vaultActive, log10 } from "./book";
 
@@ -121,7 +122,7 @@ export class Market {
   quotePrice(side: Side, book: Book): number {
     const scale = 10 ** this.priceDec, tick = this.tickUnits;
     const bidU = Math.round(book.bid * scale), askU = Math.round(book.ask * scale);
-    const step = config.quoteInsideTicks * tick;
+    const step = getQuoteInsideTicks() * tick;
     let p = side === "buy" ? bidU + step : askU - step;
     if (side === "buy" && p >= askU) p = bidU;
     if (side === "sell" && p <= bidU) p = askU;

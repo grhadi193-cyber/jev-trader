@@ -1,5 +1,6 @@
 import { appendFileSync, mkdirSync } from "node:fs";
 import { config } from "./config";
+import { getRisk, getTradeSize, getMaxPosition, getQuoteInsideTicks } from "./risk";
 import { Market, type Book, type Fill, type Quote, type QuoteResult, type Side } from "./market";
 import type { Action, Decision, Model, TradeState } from "./model";
 import { TradeFeed, type MakerFill, type TradePrint } from "./trades";
@@ -115,7 +116,8 @@ export class Trader {
       if (side) {
         decision.action = side;
         const cancel = [...this.orders.keys()].filter((id) => id > 0); // simulated orders have negative ids
-        quote = await this.market.send(block, side, config.tradeSizeMon, book, cancel, side !== wanted);
+        const size = getTradeSize(book.mid);
+        quote = await this.market.send(block, side, size, book, cancel, side !== wanted);
         this.totals.quotes++;
         if (quote.status === "sim") {
           this.orders.clear(); // the simulated cancel
@@ -232,9 +234,9 @@ export class Trader {
 
   /** Would this order, and everything already resting on its side, keep us inside the cap and (live) inside margin funds? */
   private allowed(side: Side, book: Book) {
-    const size = config.tradeSizeMon;
+    const size = getTradeSize(book.mid);
     const exposure = side === "buy" ? this.position.mon + this.restingMon("buy") + size : this.position.mon - this.restingMon("sell") - size;
-    if (Math.abs(exposure) > config.maxPositionMon) return false;
+    if (Math.abs(exposure) > getMaxPosition()) return false;
     if (!this.market.wallet) return true;
     // Kuru debits margin when an order is placed, so the balance already excludes what is resting.
     return side === "buy" ? this.market.margin.usdc >= size * book.ask : this.market.margin.mon >= size;
@@ -294,7 +296,7 @@ export class Trader {
     const unrealized = this.unrealizedUsd(book.mid);
     t.pnlUsd = t.realizedUsd + unrealized - t.gasUsd;
     t.pnlMon = t.pnlUsd / book.mid;
-    t.pnlPct = (t.pnlUsd / config.bankrollUsd) * 100;
+    t.pnlPct = (t.pnlUsd / getRisk().bankrollUsd) * 100;
     const size = Math.abs(this.position.mon);
     const event: BlockEvent = {
       block, ts: Date.now(), mid: book.mid, bestBid: book.bid, bestAsk: book.ask, spreadBps: round(book.spreadBps, 2),
