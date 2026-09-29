@@ -1,5 +1,6 @@
 import { config } from "./config";
 import { getRisk, saveRisk, loadRisk } from "./risk";
+import { getLearn } from "./learn";
 import type { Fill, Quote } from "./market";
 import type { BlockEvent } from "./trader";
 
@@ -29,6 +30,7 @@ export function startServer(meta: Meta, history: () => BlockEvent[]) {
       if (pathname === "/") return json({ ...meta, latest: history().at(-1) ?? null, risk: getRisk() });
       if (pathname === "/history") return json(history());
       if (pathname === "/api/risk" && req.method === "GET") return json(getRisk());
+      if (pathname === "/api/learning" && req.method === "GET") return json(getLearn());
       if (pathname === "/api/risk" && req.method === "POST") {
         try {
           const body = await req.json() as any;
@@ -40,6 +42,10 @@ export function startServer(meta: Meta, history: () => BlockEvent[]) {
       }
       if (pathname === "/dashboard" || pathname === "/app" || pathname === "/god") {
         const html = Bun.file(import.meta.dir + "/dashboard.html");
+        return new Response(html, { headers: { "content-type": "text/html; charset=utf-8", ...CORS } });
+      }
+      if (pathname === "/learn" || pathname === "/learning" || pathname === "/brain") {
+        const html = Bun.file(import.meta.dir + "/learning.html");
         return new Response(html, { headers: { "content-type": "text/html; charset=utf-8", ...CORS } });
       }
       if (pathname === "/events") {

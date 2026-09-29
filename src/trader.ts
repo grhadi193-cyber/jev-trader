@@ -1,6 +1,7 @@
 import { appendFileSync, mkdirSync } from "node:fs";
 import { config } from "./config";
 import { getRisk, getTradeSize, getMaxPosition, getQuoteInsideTicks } from "./risk";
+import { recordTrade } from "./learn";
 import { Market, type Book, type Fill, type Quote, type QuoteResult, type Side } from "./market";
 import type { Action, Decision, Model, TradeState } from "./model";
 import { TradeFeed, type MakerFill, type TradePrint } from "./trades";
@@ -326,11 +327,18 @@ export class Trader {
     const exitSide: Side = isLong ? "sell" : "buy";
     const exitPrice = isLong ? book.bid : book.ask;
     const size = Math.abs(this.position.mon);
+    const holdBlocks = this.entryBlock ? block - this.entryBlock : 1;
+    const pnlUsd = isLong ? size * (exitPrice - entry) : size * (entry - exitPrice);
     const fill: Fill & { block: number } = { side: exitSide, size, price: exitPrice, txHash: null, orderId: -999, simulated: true, block };
     console.log(`#${block} EXIT ${reason} ${isLong ? "LONG" : "SHORT"} ${size.toFixed(0)} @ ${exitPrice.toFixed(6)} entry ${entry.toFixed(6)} pnl ${pnlPct.toFixed(2)}% peak ${this.peakPnlPct.toFixed(2)}%`);
     // clear resting (we're taking, not making)
     this.orders.clear();
+    const prevEntry = entry, prevSide = isLong ? "long" as const : "short" as const;
     this.applyFill(fill);
+    // --- LEARN: each trade learns why ---
+    try {
+      recordTrade({ block, side: prevSide, entry: prevEntry, exit: exitPrice, size, pnlUsd, holdBlocks, exitReason: reason });
+    } catch {}
     // return fill for history/tape
     return fill as Fill;
   }
