@@ -29,5 +29,14 @@ services:
         value: https://rpc.monad.xyz
       - key: TYPESAFE_AI_API_KEY
         sync: false
+      # --- GOD RISK SETTINGS ---
+      - key: TRADE_SIZE_MON
+        value: "500"
+      - key: MAX_POSITION_MON
+        value: "2500"
+      - key: QUOTE_INSIDE_TICKS
+        value: "0"
+      - key: BANKROLL_USD
+        value: "100"
       # PRIVATE_KEY is intentionally NOT defined — demo is dry-run only (beatapi.io free Jev, no balance needed)
       # Add BEATAPI_API_KEY alias also works. Do not add PRIVATE_KEY here.

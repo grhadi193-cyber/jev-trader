@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JEV TRADER // GOD MODE — MON-USDC // KURU</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#06070A; --panel:#0E1116; --panel2:#11151D; --border:#1E2533; --border2:#253044;
+  --ink:#E6EAF2; --muted:#8A94A8; --dim:#5B657A;
+  --purple:#7B6CF6; --purple2:#9D93F8; --cyan:#00E5CC; --green:#00FF88; --green2:#0FFF95; --red:#FF3B5C; --red2:#FF6B7A; --amber:#FFB800; --blue:#3B82FF;
+  --grid: rgba(123,108,246,0.07);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:"Space Grotesk",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+.mono{font-family:"JetBrains Mono",monospace}
+
+/* scanline + grid texture */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size:32px 32px;
+  opacity:0.6;
+}
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background: radial-gradient(1200px 600px at 50% -10%, rgba(123,108,246,0.18), transparent 60%),
+              radial-gradient(800px 400px at 90% 30%, rgba(0,229,204,0.12), transparent 60%),
+              linear-gradient(transparent 50%, rgba(0,255,136,0.02) 50%);
+  background-size: auto, auto, 100% 4px;
+}
+
+/* layout */
+.wrap{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:18px 16px 24px}
+.header{
+  display:flex;align-items:center;gap:14px;padding:12px 16px;
+  background:linear-gradient(180deg, rgba(17,21,29,0.9), rgba(14,17,22,0.9));
+  border:1px solid var(--border);border-radius:14px;backdrop-filter:blur(12px);
+  box-shadow:0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04);
+  position:sticky;top:12px;z-index:5;
+}
+.brand{font-weight:800;letter-spacing:0.08em;font-size:13px;display:flex;align-items:center;gap:10px}
+.brand b{font-size:15px;letter-spacing:0.06em}
+.live-dot{width:9px;height:9px;border-radius:999px;background:var(--green);box-shadow:0 0 12px var(--green), 0 0 24px var(--green);animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.15);opacity:0.85}}
+.pill{font-family:"JetBrains Mono",monospace;font-size:11px;padding:5px 8px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:var(--muted)}
+.badge{font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:700;padding:6px 10px;border-radius:999px;letter-spacing:0.06em}
+.badge-god{background:linear-gradient(135deg, #7B6CF6, #00E5CC);color:white;box-shadow:0 0 16px rgba(123,108,246,0.5)}
+.badge-mock{background:rgba(255,184,0,0.15);color:var(--amber);border:1px solid rgba(255,184,0,0.3)}
+.wallet{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);border:1px solid var(--border);padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.02)}
+.wallet.live{color:var(--ink);border-color:var(--border2)}
+
+/* stats row */
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:14px 0}
+@media(max-width:900px){.stats{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:560px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{
+  background:linear-gradient(180deg, var(--panel) , var(--panel2));
+  border:1px solid var(--border);border-radius:12px;padding:12px 12px 10px;
+  position:relative;overflow:hidden;
+}
+.stat::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;background:linear-gradient(90deg, transparent, rgba(123,108,246,0.5), transparent);opacity:0.6}
+.stat label{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--dim);font-weight:600}
+.stat strong{font-family:"JetBrains Mono",monospace;font-size:18px;font-weight:800;letter-spacing:-0.02em;display:block;margin-top:4px}
+.stat small{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--muted);display:block;margin-top:2px}
+.stat.glow-green{box-shadow:0 0 0 1px rgba(0,255,136,0.15), 0 4px 24px rgba(0,255,136,0.08)}
+.stat.glow-red{box-shadow:0 0 0 1px rgba(255,59,92,0.15), 0 4px 24px rgba(255,59,92,0.08)}
+.stat.glow-purple{box-shadow:0 0 0 1px rgba(123,108,246,0.2), 0 4px 24px rgba(123,108,246,0.1)}
+
+/* main grid */
+.main{display:grid;grid-template-columns:1.65fr 0.85fr;gap:12px;align-items:start}
+@media(max-width:960px){.main{grid-template-columns:1fr}}
+.card{
+  background:linear-gradient(180deg, rgba(16,20,28,0.9), rgba(11,14,19,0.9));
+  border:1px solid var(--border);border-radius:14px;overflow:hidden;backdrop-filter:blur(10px);
+  box-shadow:0 8px 32px rgba(0,0,0,0.5);
+}
+.card-hd{padding:12px 14px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.card-hd i{width:8px;height:8px;border-radius:999px;background:var(--purple);box-shadow:0 0 10px var(--purple)}
+.card-bd{padding:12px}
+.chartWrap{position:relative;height:360px;background:radial-gradient(600px 300px at 30% 20%, rgba(123,108,246,0.08), transparent 60%), linear-gradient(180deg, rgba(255,255,255,0.01), transparent)}
+.chartWrap canvas{position:absolute;inset:12px;width:calc(100% - 24px);height:calc(100% - 24px)}
+.chartOverlay{position:absolute;inset:12px;pointer-events:none}
+.priceBig{position:absolute;top:18px;left:16px;font-family:"JetBrains Mono",monospace}
+.priceBig strong{font-size:28px;font-weight:800;letter-spacing:-0.03em;text-shadow:0 0 20px rgba(123,108,246,0.6)}
+.priceBig small{font-size:11px;color:var(--muted);display:block;margin-top:2px}
+.riskBadge{position:absolute;top:18px;right:16px;font-family:"JetBrains Mono",monospace;font-size:11px;padding:6px 10px;border-radius:999px;font-weight:700;letter-spacing:0.06em;border:1px solid}
+.risk-low{background:rgba(0,255,136,0.12);color:var(--green);border-color:rgba(0,255,136,0.3);box-shadow:0 0 12px rgba(0,255,136,0.2)}
+.risk-med{background:rgba(255,184,0,0.12);color:var(--amber);border-color:rgba(255,184,0,0.3)}
+.risk-high{background:rgba(255,59,92,0.15);color:var(--red);border-color:rgba(255,59,92,0.4);box-shadow:0 0 16px rgba(255,59,92,0.3);animation:riskPulse 1.2s infinite}
+@keyframes riskPulse{0%,100%{box-shadow:0 0 16px rgba(255,59,92,0.3)}50%{box-shadow:0 0 24px rgba(255,59,92,0.5)}}
+
+/* decision panel */
+.decision{padding:14px}
+.decRow{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.decWord{font-weight:800;font-size:22px;letter-spacing:-0.02em}
+.decWord.buy{color:var(--green);text-shadow:0 0 16px rgba(0,255,136,0.6)}
+.decWord.sell{color:var(--red);text-shadow:0 0 16px rgba(255,59,92,0.6)}
+.decWord.hold{color:var(--muted)}
+.decWord.late{color:var(--amber)}
+.bar{height:10px;border-radius:999px;background:rgba(255,255,255,0.06);overflow:hidden;display:flex;border:1px solid var(--border);position:relative}
+.bar i{height:100%;transition:width 0.35s ease;position:relative}
+.bar i.buy{background:linear-gradient(90deg, #00FF88, #00E5CC);box-shadow:0 0 12px rgba(0,255,136,0.6)}
+.bar i.sell{background:linear-gradient(90deg, #FF3B5C, #FF6B7A);box-shadow:0 0 12px rgba(255,59,92,0.5)}
+.bar i.hold{background:var(--dim)}
+.metaRow{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.meta{font-family:"JetBrains Mono",monospace;font-size:11px;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--muted)}
+.meta strong{color:var(--ink);font-weight:700}
+.ticks{display:flex;gap:4px;margin-top:12px}
+.tick{flex:1;height:18px;border-radius:4px;background:var(--border);position:relative;overflow:hidden}
+.tick.buy{background:var(--green);box-shadow:0 0 8px rgba(0,255,136,0.4)}
+.tick.sell{background:var(--red);box-shadow:0 0 8px rgba(255,59,92,0.4)}
+.tick.hold{background:var(--dim)}
+.tick.late{background:var(--amber)}
+
+/* feed */
+.feed{max-height:420px;overflow:auto}
+.feed::-webkit-scrollbar{width:6px}
+.feed::-webkit-scrollbar-thumb{background:var(--border2);border-radius:999px}
+.row{display:grid;grid-template-columns:58px 42px 1fr 74px;gap:8px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);font-family:"JetBrains Mono",monospace;font-size:11px;align-items:center}
+.row.head{position:sticky;top:0;background:var(--panel);z-index:1;color:var(--dim);font-size:10px;letter-spacing:0.08em;text-transform:uppercase}
+.row .side.buy{color:var(--green);font-weight:700}
+.row .side.sell{color:var(--red);font-weight:700}
+.row .side.hold{color:var(--dim)}
+
+/* pnl spark */
+.pnlWrap{height:120px;position:relative;background:rgba(0,0,0,0.2);border-radius:10px;border:1px solid var(--border);overflow:hidden;margin-top:12px}
+.pnlWrap canvas{position:absolute;inset:0;width:100%;height:100%}
+
+/* footer */
+.foot{margin-top:14px;padding:10px 14px;border:1px dashed var(--border);border-radius:12px;background:rgba(255,255,255,0.02);font-size:11px;color:var(--muted);line-height:1.5}
+.foot strong{color:var(--amber)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="brand"><span class="live-dot"></span> <b>JEV TRADER</b> <span style="opacity:0.6">// GOD MODE</span></div>
+    <div class="pill mono" id="blockPill">block —</div>
+    <div class="pill mono" id="marketPill">MON-USDC • KURU • MONAD 143</div>
+    <div style="flex:1"></div>
+    <div class="wallet" id="walletPill">dry run</div>
+    <div class="badge badge-god" id="modelBadge">printer-god-v2-risk</div>
+    <div class="pill mono" id="connPill" style="border-color:rgba(0,255,136,0.3);color:var(--green)">● LIVE</div>
+  </div>
+
+  <div class="stats" id="stats">
+    <div class="stat glow-purple"><label>Blocks</label><strong id="sBlocks">—</strong><small id="sBlocksSub">—</small></div>
+    <div class="stat"><label>Decisions / Late</label><strong id="sDec">—</strong><small id="sLate">—</small></div>
+    <div class="stat"><label>Fills</label><strong id="sFills">—</strong><small id="sFillsSub">simulated</small></div>
+    <div class="stat glow-green" id="pnlCard"><label>P&L</label><strong id="sPnl">—</strong><small id="sPnlSub">—</small></div>
+    <div class="stat"><label>Position</label><strong id="sPos">—</strong><small id="sPosSub">—</small></div>
+    <div class="stat"><label>Jev Cost / Gas</label><strong id="sJev">—</strong><small id="sGas">—</small></div>
+  </div>
+
+  <div class="main">
+    <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+      <div class="card">
+        <div class="card-hd"><i></i> PRICE // MON-USDC — KURU ORDERBOOK <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim)">LIVE 300ms</span></div>
+        <div class="chartWrap" id="chartWrap">
+          <canvas id="priceCanvas" width="800" height="360"></canvas>
+          <div class="chartOverlay">
+            <div class="priceBig"><strong id="priceBig">—</strong><small id="priceSub">mid • spread —</small></div>
+            <div class="riskBadge risk-low" id="riskBadge">RISK: LOW</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><i style="background:var(--green)"></i> PNL // EQUITY CURVE <span style="margin-left:auto" class="mono" id="pnlPct">—</span></div>
+        <div class="pnlWrap"><canvas id="pnlCanvas" width="800" height="120"></canvas></div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+      <div class="card">
+        <div class="card-hd"><i style="background:var(--cyan)"></i> DECISION // GOD BRAIN</div>
+        <div class="decision" id="decisionBox">
+          <div class="decRow"><div class="decWord hold" id="decWord">Waiting…</div><div class="mono" id="decLat" style="font-size:11px;color:var(--muted)">—</div></div>
+          <div class="bar" id="probBar"><i class="buy" id="buyBar" style="width:50%"></i><i class="sell" id="sellBar" style="width:50%"></i></div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)"><span>BUY <b id="buyPct" style="color:var(--green)">—</b></span><span>SELL <b id="sellPct" style="color:var(--red)">—</b></span></div>
+          <div class="metaRow">
+            <div class="meta">conf <strong id="conf">—</strong></div>
+            <div class="meta">spread <strong id="spread">—</strong></div>
+            <div class="meta">imbalance <strong id="imb">—</strong></div>
+            <div class="meta">cvd <strong id="cvd">—</strong></div>
+          </div>
+          <div class="ticks" id="ticks"></div>
+          <div class="mono" style="margin-top:8px;font-size:10px;color:var(--dim);letter-spacing:0.06em" id="quoteLine">no quote</div>
+        </div>
+      </div>
+
+      <div class="card" style="flex:1;min-height:0;display:flex;flex-direction:column">
+        <div class="card-hd"><i style="background:var(--amber)"></i> TAPE // LAST FILLS <span style="margin-left:auto" class="mono" id="tapeCount">—</span></div>
+        <div class="feed" id="feed">
+          <div class="row head"><span>block</span><span>side</span><span>size @ price</span><span>pnl</span></div>
+          <div id="feedRows"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <strong>⚠️ EXPERIMENTAL DRY-RUN ONLY — BEATAPI FREE JEV + GOD PRINTER</strong> — No real transactions. This printer is <b>HIGH RISK</b> creative logic (hold 52% threshold, 5% chaos flip, 500 MON/trade, 2500 max). Not financial advice. Past sim ≠ future profit. Watch it, don't trust it.
+  </div>
+</div>
+
+<script>
+const API = location.origin;
+const $ = s => document.querySelector(s);
+const fmtPrice = n => Number(n).toFixed(6);
+const fmtMon = (n,d=1)=> Number(n).toFixed(d);
+const fmtPct = n => (n>=0?"+":"")+Number(n).toFixed(3)+"%";
+
+let events = [];
+let meta = null;
+let latest = null;
+let pnlHistory = [];
+
+function renderStats(){
+  const t = latest?.totals;
+  if(!t) return;
+  $("#sBlocks").textContent = t.blocks.toLocaleString();
+  $("#sBlocksSub").textContent = t.lateBlocks+" late • "+(t.blocks - t.lateBlocks)+" ok";
+  $("#sDec").textContent = t.decisions.toLocaleString();
+  $("#sLate").textContent = t.lateBlocks+" late • avg "+(document._avgLat||0)+"ms";
+  $("#sFills").textContent = t.fills.toLocaleString();
+  const pnl = t.pnlUsd;
+  const pnlEl = $("#sPnl");
+  pnlEl.textContent = (pnl>=0?"+":"")+pnl.toFixed(4)+" $";
+  pnlEl.style.color = pnl>=0 ? "var(--green)" : "var(--red)";
+  $("#pnlCard").className = "stat "+(pnl>=0?"glow-green":"glow-red");
+  $("#sPnlSub").textContent = fmtPct(t.pnlPct) + " • " + fmtMon(t.pnlMon,4) + " MON";
+  $("#pnlPct").textContent = fmtPct(t.pnlPct);
+  $("#pnlPct").style.color = pnl>=0? "var(--green)" : "var(--red)";
+  const pos = latest.position;
+  $("#sPos").textContent = pos.side==="flat" ? "FLAT" : pos.side.toUpperCase()+" "+fmtMon(pos.size,0);
+  $("#sPos").style.color = pos.side==="long" ? "var(--green)" : pos.side==="short" ? "var(--red)" : "var(--muted)";
+  $("#sPosSub").textContent = pos.entryPrice ? "entry "+fmtPrice(pos.entryPrice)+" • uPnL "+Number(pos.unrealizedUsd).toFixed(4) : "no position";
+  $("#sJev").textContent = "$"+Number(t.jevUsd).toFixed(4);
+  $("#sGas").textContent = Number(t.gasMon).toFixed(3)+" MON gas";
+  $("#blockPill").textContent = "block "+t.blocks+" • #"+latest.block;
+  $("#priceBig").textContent = fmtPrice(latest.mid);
+  $("#priceSub").textContent = "mid • bid "+fmtPrice(latest.bestBid)+" / ask "+fmtPrice(latest.bestAsk)+" • spread "+Number(latest.spreadBps).toFixed(1)+"bps";
+  // risk badge
+  const absPos = Math.abs(pos.size);
+  const maxPos = 2500;
+  const risk = absPos/maxPos;
+  const rb = $("#riskBadge");
+  if(risk>0.7){ rb.textContent="RISK: HIGH • "+Math.round(risk*100)+"%"; rb.className="riskBadge risk-high"; }
+  else if(risk>0.35){ rb.textContent="RISK: MED • "+Math.round(risk*100)+"%"; rb.className="riskBadge risk-med"; }
+  else { rb.textContent="RISK: LOW • "+Math.round(risk*100)+"%"; rb.className="riskBadge risk-low"; }
+}
+
+function renderDecision(){
+  if(!latest || !latest.decision){ $("#decWord").textContent="Waiting…"; return; }
+  const d = latest.decision;
+  const w = $("#decWord");
+  w.className = "decWord "+ (d.late? "late" : d.action);
+  w.textContent = d.late? "LATE • HOLD" : d.action==="buy" ? "BUY" : d.action==="sell" ? "SELL" : "HOLD";
+  $("#decLat").textContent = d.late? "late" : d.latencyMs+" ms";
+  const buy = d.probabilities.buy||0, sell = d.probabilities.sell||0;
+  $("#buyBar").style.width = (buy*100).toFixed(1)+"%";
+  $("#sellBar").style.width = (sell*100).toFixed(1)+"%";
+  $("#buyPct").textContent = (buy*100).toFixed(0)+"%";
+  $("#sellPct").textContent = (sell*100).toFixed(0)+"%";
+  const conf = Math.max(buy,sell, d.probabilities.hold||0);
+  $("#conf").textContent = (conf*100).toFixed(0)+"%";
+  $("#spread").textContent = Number(latest.spreadBps).toFixed(1)+"bps";
+  $("#imb").textContent = (latest.decision? (latest.mid? "" : "") : "") + (latest.bestBid? "" : "");
+  // try to get imbalance from latest event's decision? we store it via history? fallback
+  $("#imb").textContent = latest.spreadBps ? (latest.decision.probabilities.buy>0.5? "+" : "-") + Math.abs((buy-sell)).toFixed(2) : "—";
+  $("#cvd").textContent = latest.totals ? latest.totals.fills+" fills" : "—";
+  const q = latest.quote;
+  $("#quoteLine").textContent = q ? `${q.side.toUpperCase()} ${q.size} @ ${fmtPrice(q.price)} • ${q.status}${q.capped?" • capped":""} • ${q.cancel.length} cancel` : "no quote (hold / cap)";
+  // ticks
+  const ticksEl = $("#ticks");
+  ticksEl.innerHTML = "";
+  const recent = events.slice(-36);
+  recent.forEach(e=>{
+    const div=document.createElement("div");
+    div.className="tick "+ (e.decision?.late? "late" : e.decision?.action || "hold");
+    div.title="#"+e.block+" "+(e.decision?.action||"hold");
+    ticksEl.appendChild(div);
+  });
+}
+
+function renderFeed(){
+  const rows = $("#feedRows");
+  rows.innerHTML="";
+  const fills = events.filter(e=>e.fill).slice(-18).reverse();
+  $("#tapeCount").textContent = fills.length+" fills";
+  fills.forEach(e=>{
+    const r=document.createElement("div"); r.className="row";
+    r.innerHTML = `<span class="mono" style="color:var(--dim)">#${e.block}</span><span class="side ${e.fill.side}">${e.fill.side.toUpperCase()}</span><span>${fmtMon(e.fill.size,0)} @ ${fmtPrice(e.fill.price)}</span><span class="mono" style="color:${e.totals.pnlUsd>=0?'var(--green)':'var(--red)'}">${e.totals.pnlUsd>=0?'+':''}${Number(e.totals.pnlUsd).toFixed(3)}</span>`;
+    rows.appendChild(r);
+  });
+  if(fills.length===0) rows.innerHTML='<div class="row"><span style="grid-column:1/-1;color:var(--muted);text-align:center;padding:16px">no fills yet — waiting for print to cross</span></div>';
+}
+
+// price canvas
+function drawPrice(){
+  const cvs = $("#priceCanvas");
+  const ctx = cvs.getContext("2d");
+  const dpr = devicePixelRatio||1;
+  const rect = cvs.getBoundingClientRect();
+  cvs.width = rect.width * dpr; cvs.height = rect.height * dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const W = rect.width, H = rect.height;
+  ctx.clearRect(0,0,W,H);
+  if(events.length<2) return;
+  const n = Math.min(events.length, Math.floor(W/6));
+  const slice = events.slice(-n);
+  let lo=Infinity, hi=-Infinity;
+  slice.forEach(e=>{ if(e.mid<lo) lo=e.mid; if(e.mid>hi) hi=e.mid; });
+  const pad = (hi-lo)*0.15 || lo*0.002;
+  lo-=pad; hi+=pad;
+  const range = hi-lo||1;
+  const X = i => 12 + (i/(n-1))*(W-24);
+  const Y = p => 28 + (1-(p-lo)/range)*(H-56);
+  // grid
+  ctx.strokeStyle="rgba(255,255,255,0.04)"; ctx.lineWidth=1;
+  for(let i=0;i<3;i++){ const y=28 + (H-56)*i/3; ctx.beginPath(); ctx.moveTo(12,y); ctx.lineTo(W-12,y); ctx.stroke();
+    ctx.fillStyle="rgba(138,148,168,0.5)"; ctx.font="10px JetBrains Mono"; ctx.textAlign="right"; ctx.fillText(fmtPrice(lo+(1-i/3)*range), W-14, y-6);
+  }
+  // area + line with glow
+  ctx.beginPath();
+  slice.forEach((e,i)=>{ const x=X(i), y=Y(e.mid); i===0? ctx.moveTo(x,y) : ctx.lineTo(x,y); });
+  ctx.strokeStyle="#7B6CF6"; ctx.lineWidth=2; ctx.shadowColor="rgba(123,108,246,0.8)"; ctx.shadowBlur=16; ctx.stroke(); ctx.shadowBlur=0;
+  // area fill
+  ctx.lineTo(X(n-1), H-28); ctx.lineTo(X(0), H-28); ctx.closePath();
+  const grad=ctx.createLinearGradient(0,28,0,H-28);
+  grad.addColorStop(0,"rgba(123,108,246,0.25)"); grad.addColorStop(1,"transparent");
+  ctx.fillStyle=grad; ctx.fill();
+  // beads for fills
+  slice.forEach((e,i)=>{
+    if(!e.fill) return;
+    const x=X(i), y=Y(e.mid);
+    ctx.beginPath(); ctx.arc(x,y,3.5,0,Math.PI*2);
+    ctx.fillStyle = e.fill.side==="buy" ? "#00FF88" : "#FF3B5C";
+    ctx.shadowColor=ctx.fillStyle; ctx.shadowBlur=12; ctx.fill(); ctx.shadowBlur=0;
+    ctx.strokeStyle="rgba(255,255,255,0.9)"; ctx.lineWidth=1; ctx.stroke();
+  });
+  // live dot
+  if(slice.length){
+    const x=X(n-1), y=Y(slice[n-1].mid);
+    ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2); ctx.fillStyle="#E6EAF2"; ctx.fill();
+    ctx.beginPath(); ctx.arc(x,y,8,0,Math.PI*2); ctx.strokeStyle="rgba(123,108,246,0.5)"; ctx.lineWidth=1; ctx.stroke();
+  }
+  // block ticks
+  const tickY = H-18;
+  slice.forEach((e,i)=>{
+    const x=X(i);
+    ctx.fillStyle = e.decision?.late? "#FFB800" : e.decision?.action==="buy"? "#00FF88" : e.decision?.action==="sell"? "#FF3B5C" : "#3A4152";
+    ctx.fillRect(x-2.5, tickY, 5, 8);
+  });
+}
+
+function drawPnl(){
+  const cvs=$("#pnlCanvas"); const ctx=cvs.getContext("2d");
+  const dpr=devicePixelRatio||1; const rect=cvs.getBoundingClientRect();
+  cvs.width=rect.width*dpr; cvs.height=rect.height*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+  const W=rect.width, H=rect.height;
+  ctx.clearRect(0,0,W,H);
+  if(pnlHistory.length<2) return;
+  let lo=Math.min(...pnlHistory), hi=Math.max(...pnlHistory);
+  if(hi-lo<0.001) { hi+=0.0005; lo-=0.0005; }
+  const range=hi-lo;
+  const X=i=> (i/(pnlHistory.length-1))*W;
+  const Y=v=> 8 + (1-(v-lo)/range)*(H-16);
+  // zero line
+  const zeroY = Y(0);
+  if(zeroY>8 && zeroY<H-8){ ctx.strokeStyle="rgba(255,255,255,0.08)"; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(0,zeroY); ctx.lineTo(W,zeroY); ctx.stroke(); ctx.setLineDash([]); }
+  // line
+  ctx.beginPath();
+  pnlHistory.forEach((v,i)=>{ const x=X(i), y=Y(v); i===0? ctx.moveTo(x,y) : ctx.lineTo(x,y); });
+  const isPos = pnlHistory[pnlHistory.length-1]>=0;
+  ctx.strokeStyle = isPos ? "#00FF88" : "#FF3B5C";
+  ctx.lineWidth=2; ctx.shadowColor=ctx.strokeStyle; ctx.shadowBlur=10; ctx.stroke(); ctx.shadowBlur=0;
+  // fill
+  ctx.lineTo(X(pnlHistory.length-1), H-8); ctx.lineTo(X(0), H-8); ctx.closePath();
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0, isPos? "rgba(0,255,136,0.25)" : "rgba(255,59,92,0.25)"); g.addColorStop(1,"transparent");
+  ctx.fillStyle=g; ctx.fill();
+}
+
+async function init(){
+  try{
+    const r = await fetch(API+"/history");
+    const h = await r.json();
+    events = Array.isArray(h)? h : [];
+    events.forEach(e=> pnlHistory.push(e.totals.pnlUsd));
+    if(pnlHistory.length>400) pnlHistory = pnlHistory.slice(-400);
+    const s = await (await fetch(API+"/")).json();
+    meta=s; latest=s.latest;
+    if(latest) { events.push(latest); pnlHistory.push(latest.totals.pnlUsd); }
+    $("#modelBadge").textContent = meta.model || "—";
+    $("#modelBadge").className = "badge "+(meta.model?.includes("god")||meta.model?.includes("printer")?"badge-god":"badge-mock");
+    $("#walletPill").textContent = meta.wallet ? meta.wallet.slice(0,6)+"…"+meta.wallet.slice(-4) : "dry run • sim";
+    $("#marketPill").textContent = (meta.market? meta.market.slice(0,6)+"…": "MON-USDC")+" • KURU";
+    document._avgLat = events.filter(e=>e.decision && !e.decision.late).slice(-20).reduce((a,e)=>a+e.decision.latencyMs,0)/20|0;
+    renderStats(); renderDecision(); renderFeed(); drawPrice(); drawPnl();
+  }catch(e){ console.error(e); $("#connPill").textContent="● RECONNECTING"; $("#connPill").style.color="var(--amber)"; }
+
+  const es = new EventSource(API+"/events");
+  es.addEventListener("snapshot", e=>{
+    try{ const d=JSON.parse(e.data); meta=d; events=d.history||[]; pnlHistory=events.map(x=>x.totals.pnlUsd); if(events.length) latest=events[events.length-1]; renderStats(); renderDecision(); renderFeed(); drawPrice(); drawPnl(); }catch{}
+  });
+  es.addEventListener("block", e=>{
+    try{
+      const b=JSON.parse(e.data);
+      events.push(b); if(events.length>800) events.shift();
+      pnlHistory.push(b.totals.pnlUsd); if(pnlHistory.length>400) pnlHistory.shift();
+      latest=b;
+      document._avgLat = events.filter(x=>x.decision && !x.decision.late).slice(-20).reduce((a,x)=>a+x.decision.latencyMs,0)/20|0;
+      renderStats(); renderDecision(); renderFeed(); drawPrice(); drawPnl();
+    }catch{}
+  });
+  es.addEventListener("fill", e=>{ try{ const d=JSON.parse(e.data); const idx=events.findIndex(x=>x.block===d.block); if(idx>=0) events[idx].fill=d.fill; renderFeed(); drawPrice(); }catch{} });
+  es.addEventListener("open", ()=>{ $("#connPill").textContent="● LIVE"; $("#connPill").style.color="var(--green)"; });
+  es.onerror=()=>{ $("#connPill").textContent="● RECONNECTING"; $("#connPill").style.color="var(--amber)"; };
+
+  // resize
+  addEventListener("resize", ()=>{ drawPrice(); drawPnl(); });
+}
+
+// avg latency helper
+document._avgLat=0;
+init();
+setInterval(()=>{ drawPrice(); drawPnl(); }, 1000);
+</script>
+</body>
+</html>
