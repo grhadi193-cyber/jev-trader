@@ -66,6 +66,8 @@ export class Trader {
   private inflight = new Map<string, Quote>();
   private simId = 0;
   private position = { mon: 0, costUsd: 0 }; // signed inventory and its cost basis
+  private entryBlock = 0;
+  private peakPnlPct = 0;
   private totals: Totals = { blocks: 0, decisions: 0, quotes: 0, fills: 0, reverted: 0, lateBlocks: 0, jevUsd: 0, gasMon: 0, gasUsd: 0, realizedUsd: 0, pnlUsd: 0, pnlMon: 0, pnlPct: 0 };
 
   constructor(
@@ -101,6 +103,19 @@ export class Trader {
       this.mids.push(book.mid);
       if (this.mids.length > 400) this.mids.shift();
       this.trades?.poll(block).then(() => this.harvest()); // off the hot path: eth_getLogs for prints (and our fills) since the last poll
+
+      // --- EXIT STRATEGY: check SL/TP/trailing/time before new entry ---
+      const exitFill = this.checkExits(block, book);
+      if (exitFill) {
+        // synthetic exit fill already applied; emit block with exit info and skip new quote this block
+        this.emit(block, book, { action: "hold", probabilities: { buy: 0.5, sell: 0.5, hold: 1 }, upIn10: 0.5, latencyMs: 0, inputTokens: 0 } as any, null, false, { readMs: Math.round(readMs), loopMs: Math.round(performance.now() - t0) });
+        // attach exit fill to history for tape
+        const last = this.history[this.history.length - 1];
+        if (last) last.fill = exitFill;
+        this.onFill(block, exitFill);
+        this.busy = false;
+        return;
+      }
 
       const decision = await this.model.decide(this.buildState(block, book));
       // Printer god-mode can return hold to skip low-confidence trades (higher win rate)
@@ -270,6 +285,7 @@ export class Trader {
 
   private applyFill(f: Fill) {
     if (f.size <= 0) return;
+    const wasFlat = this.position.mon === 0;
     const signed = f.side === "buy" ? f.size : -f.size;
     const p = this.position;
     if (p.mon === 0 || Math.sign(p.mon) === Math.sign(signed)) {
@@ -283,8 +299,40 @@ export class Trader {
       p.costUsd += remainder * f.price; // any flip opens the other way
     }
     p.mon += signed;
-    if (Math.abs(p.mon) < 1e-9) { p.mon = 0; p.costUsd = 0; }
+    if (Math.abs(p.mon) < 1e-9) { p.mon = 0; p.costUsd = 0; this.entryBlock = 0; this.peakPnlPct = 0; }
+    else if (wasFlat) { this.entryBlock = (f as any).block ?? this.totals.blocks; this.peakPnlPct = 0; }
     this.totals.fills++;
+  }
+
+  /** EXIT STRATEGY: check SL/TP/trailing/time — if hit, synthesize a closing fill at mid/bid/ask */
+  private checkExits(block: number, book: Book): Fill | null {
+    if (this.position.mon === 0) { this.peakPnlPct = 0; return null; }
+    const r = getRisk();
+    const entry = this.position.costUsd / this.position.mon;
+    const isLong = this.position.mon > 0;
+    // pnl % from entry: + is profit for current side
+    const pnlPct = isLong ? (book.mid - entry) / entry * 100 : (entry - book.mid) / entry * 100;
+    if (pnlPct > this.peakPnlPct) this.peakPnlPct = pnlPct;
+
+    let reason: string | null = null;
+    if (r.stopLossPct > 0 && pnlPct <= -r.stopLossPct) reason = `SL ${r.stopLossPct}%`;
+    else if (r.takeProfitPct > 0 && pnlPct >= r.takeProfitPct) reason = `TP ${r.takeProfitPct}%`;
+    else if (r.trailingPct > 0 && this.peakPnlPct >= r.takeProfitPct * 0.5 && pnlPct <= this.peakPnlPct - r.trailingPct) reason = `TRAIL -${r.trailingPct}% from peak ${this.peakPnlPct.toFixed(1)}%`;
+    else if (r.timeStopBlocks > 0 && this.entryBlock && block - this.entryBlock >= r.timeStopBlocks) reason = `TIME ${r.timeStopBlocks} blocks`;
+
+    if (!reason) return null;
+
+    // close at realistic price: long→sell at bid, short→buy at ask (taker exit), with 0.5 bps slippage for sim
+    const exitSide: Side = isLong ? "sell" : "buy";
+    const exitPrice = isLong ? book.bid : book.ask;
+    const size = Math.abs(this.position.mon);
+    const fill: Fill & { block: number } = { side: exitSide, size, price: exitPrice, txHash: null, orderId: -999, simulated: true, block };
+    console.log(`#${block} EXIT ${reason} ${isLong ? "LONG" : "SHORT"} ${size.toFixed(0)} @ ${exitPrice.toFixed(6)} entry ${entry.toFixed(6)} pnl ${pnlPct.toFixed(2)}% peak ${this.peakPnlPct.toFixed(2)}%`);
+    // clear resting (we're taking, not making)
+    this.orders.clear();
+    this.applyFill(fill);
+    // return fill for history/tape
+    return fill as Fill;
   }
 
   private entryPrice() { return this.position.mon ? this.position.costUsd / this.position.mon : null; }

@@ -253,6 +253,33 @@ body::after{
               <div class="riskSub" id="calcMax">max 1,730 MON • 5 trades</div>
             </div>
           </div>
+          <div style="margin-top:10px;padding:10px;background:rgba(123,108,246,0.06);border:1px solid rgba(123,108,246,0.15);border-radius:10px">
+            <div class="mono" style="font-size:10px;letter-spacing:0.1em;color:var(--purple);font-weight:700;margin-bottom:8px">EXIT STRATEGY — STOP LOSS / TAKE PROFIT</div>
+            <div class="riskGrid" style="margin-top:0">
+              <div class="riskBox">
+                <label>Stop Loss % <span id="slVal" class="riskVal">3%</span></label>
+                <input type="range" id="stopLoss" min="0.5" max="10" step="0.5" value="3">
+                <div class="riskSub">ضرر -<span id="slDisp">3%</span> → خروج</div>
+              </div>
+              <div class="riskBox">
+                <label>Take Profit % <span id="tpVal" class="riskVal">6%</span></label>
+                <input type="range" id="takeProfit" min="1" max="30" step="0.5" value="6">
+                <div class="riskSub">سود +<span id="tpDisp">6%</span> → خروج • RR <span id="rrDisp">2.0</span></div>
+              </div>
+            </div>
+            <div class="riskGrid">
+              <div class="riskBox">
+                <label>Trailing % <span id="trailVal" class="riskVal">1.5%</span></label>
+                <input type="range" id="trailing" min="0" max="5" step="0.5" value="1.5">
+                <div class="riskSub">0=off • بعد سود، اگر <span id="trailDisp">1.5%</span> برگرده → خروج</div>
+              </div>
+              <div class="riskBox">
+                <label>Time Stop <span id="timeVal" class="riskVal">300</span></label>
+                <input type="range" id="timeStop" min="0" max="2000" step="50" value="300">
+                <div class="riskSub"><span id="timeDisp">90s</span> (300 blocks) 0=off</div>
+              </div>
+            </div>
+          </div>
           <div class="presetRow">
             <div class="preset" onclick="applyPreset('conservative')">🛡️ 2% 2x</div>
             <div class="preset active" onclick="applyPreset('god')">👑 10% 2x GOD</div>
@@ -260,7 +287,7 @@ body::after{
             <div class="preset" onclick="applyPreset('max')">💀 50% 10x MAX</div>
           </div>
           <button class="riskSave" id="riskSave" onclick="saveRisk()">💾 SAVE — APPLY LIVE</button>
-          <div class="mono" style="font-size:10px;color:var(--dim);margin-top:6px;text-align:center">ذخیره رو سرور (data/risk.json) + بلاک بعدی با ریسک جدید</div>
+          <div class="mono" style="font-size:10px;color:var(--dim);margin-top:6px;text-align:center">ذخیره رو سرور (data/risk.json) + بلاک بعدی با ریسک/خروج جدید • بهترین RR=2 (TP=2×SL)</div>
         </div>
       </div>
       <div class="card">
@@ -422,6 +449,23 @@ function drawPrice(){
   const grad=ctx.createLinearGradient(0,28,0,H-28);
   grad.addColorStop(0,"rgba(123,108,246,0.25)"); grad.addColorStop(1,"transparent");
   ctx.fillStyle=grad; ctx.fill();
+  // SL/TP lines if position open
+  if(latest?.position?.entryPrice && riskCfg){
+    const entry = latest.position.entryPrice;
+    const isLong = latest.position.side==="long";
+    const sl = isLong ? entry*(1 - riskCfg.stopLossPct/100) : entry*(1 + riskCfg.stopLossPct/100);
+    const tp = isLong ? entry*(1 + riskCfg.takeProfitPct/100) : entry*(1 - riskCfg.takeProfitPct/100);
+    // only draw if within view
+    [ {p:sl, c:"rgba(255,59,92,0.9)", label:`SL -${riskCfg.stopLossPct}%`}, {p:tp, c:"rgba(0,255,136,0.9)", label:`TP +${riskCfg.takeProfitPct}%`} ].forEach(({p,c,label})=>{
+      const y=Y(p);
+      if(y<28 || y>H-28) return;
+      ctx.strokeStyle=c; ctx.setLineDash([6,4]); ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(12,y); ctx.lineTo(W-12,y); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle=c; ctx.font="10px JetBrains Mono"; ctx.textAlign="left"; ctx.fillText(label+" "+fmtPrice(p), 14, y-6);
+    });
+    // entry line
+    const ey=Y(entry);
+    if(ey>=28 && ey<=H-28){ ctx.strokeStyle="rgba(230,234,242,0.6)"; ctx.setLineDash([3,3]); ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(12,ey); ctx.lineTo(W-12,ey); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle="rgba(230,234,242,0.8)"; ctx.font="10px JetBrains Mono"; ctx.textAlign="left"; ctx.fillText("ENTRY "+fmtPrice(entry), 14, ey-6); }
+  }
   // beads for fills
   slice.forEach((e,i)=>{
     if(!e.fill) return;
@@ -495,7 +539,18 @@ function calcPreview(){
   $("#calcSize").textContent = size.toLocaleString() + " MON / $" + riskUsd.toFixed(2);
   $("#calcMax").textContent = "max " + max.toLocaleString() + " MON • " + (max/size|0) + " trades";
   $("#ticksVal").textContent = $("#quoteTicks").value;
-  $("#riskSave").textContent = `💾 SAVE — APPLY LIVE (${riskPct}% * ${lev}x = ${size} MON)`;
+  // exit preview
+  const sl = Number($("#stopLoss")?.value)||3, tp = Number($("#takeProfit")?.value)||6, trail = Number($("#trailing")?.value)||1.5, time = Number($("#timeStop")?.value)||300;
+  if($("#slVal")) $("#slVal").textContent = sl+"%";
+  if($("#tpVal")) $("#tpVal").textContent = tp+"%";
+  if($("#trailVal")) $("#trailVal").textContent = trail+"%";
+  if($("#timeVal")) $("#timeVal").textContent = time;
+  if($("#slDisp")) $("#slDisp").textContent = sl+"%";
+  if($("#tpDisp")) $("#tpDisp").textContent = tp+"%";
+  if($("#rrDisp")) $("#rrDisp").textContent = (tp/sl).toFixed(1);
+  if($("#trailDisp")) $("#trailDisp").textContent = trail+"%";
+  if($("#timeDisp")) $("#timeDisp").textContent = time==0?"off": Math.round(time*0.3)+"s ("+time+" blocks)";
+  $("#riskSave").textContent = `💾 SAVE — APPLY LIVE (${riskPct}% * ${lev}x = ${size} MON • SL ${sl}% TP ${tp}%)`;
   // fixed preview
   if(!usePctMode){
     const fSize = Number($("#fixedSize").value)||500;
@@ -515,13 +570,17 @@ function setMode(pct){
 }
 function applyPreset(k){
   const presets = {
-    conservative:{riskPct:2, leverage:2, bankrollUsd:100, quoteInsideTicks:1},
-    god:{riskPct:10, leverage:2, bankrollUsd:100, quoteInsideTicks:1},
-    degen:{riskPct:25, leverage:5, bankrollUsd:100, quoteInsideTicks:1},
-    max:{riskPct:50, leverage:10, bankrollUsd:100, quoteInsideTicks:0},
+    conservative:{riskPct:2, leverage:2, bankrollUsd:100, quoteInsideTicks:1, stopLossPct:2, takeProfitPct:4, trailingPct:1, timeStopBlocks:300},
+    god:{riskPct:10, leverage:2, bankrollUsd:100, quoteInsideTicks:1, stopLossPct:3, takeProfitPct:6, trailingPct:1.5, timeStopBlocks:300},
+    degen:{riskPct:25, leverage:5, bankrollUsd:100, quoteInsideTicks:1, stopLossPct:4, takeProfitPct:10, trailingPct:2, timeStopBlocks:200},
+    max:{riskPct:50, leverage:10, bankrollUsd:100, quoteInsideTicks:0, stopLossPct:5, takeProfitPct:10, trailingPct:0, timeStopBlocks:0},
   };
   const p = presets[k]; if(!p) return;
   $("#riskPct").value = p.riskPct; $("#leverage").value = p.leverage; $("#bankroll").value = p.bankrollUsd; $("#quoteTicks").value = p.quoteInsideTicks;
+  if($("#stopLoss")) $("#stopLoss").value = p.stopLossPct;
+  if($("#takeProfit")) $("#takeProfit").value = p.takeProfitPct;
+  if($("#trailing")) $("#trailing").value = p.trailingPct;
+  if($("#timeStop")) $("#timeStop").value = p.timeStopBlocks;
   document.querySelectorAll(".preset").forEach(el=>el.classList.remove("active"));
   event?.target?.classList.add("active");
   setMode(true); calcPreview();
@@ -539,37 +598,47 @@ async function loadRisk(){
     $("#quoteTicks").value = r.quoteInsideTicks;
     $("#fixedSize").value = r.tradeSizeMon;
     $("#maxPos").value = r.maxPositionMon;
+    if($("#stopLoss")) $("#stopLoss").value = r.stopLossPct ?? 3;
+    if($("#takeProfit")) $("#takeProfit").value = r.takeProfitPct ?? 6;
+    if($("#trailing")) $("#trailing").value = r.trailingPct ?? 1.5;
+    if($("#timeStop")) $("#timeStop").value = r.timeStopBlocks ?? 300;
     setMode(r.usePct);
     calcPreview();
-    $("#riskStatus").textContent = `live: ${r.riskPct}% * ${r.leverage}x • ${r.tradeSizeMon} MON`;
+    $("#riskStatus").textContent = `live: ${r.riskPct}% * ${r.leverage}x • SL ${r.stopLossPct}% TP ${r.takeProfitPct}%`;
     $("#riskStatus").style.color = "var(--green)";
   }catch(e){ $("#riskStatus").textContent = "offline"; }
 }
 async function saveRisk(){
   const btn = $("#riskSave"); btn.disabled = true; btn.textContent = "⏳ SAVING...";
+  const exitBase = {
+    stopLossPct: Number($("#stopLoss")?.value ?? 3),
+    takeProfitPct: Number($("#takeProfit")?.value ?? 6),
+    trailingPct: Number($("#trailing")?.value ?? 1.5),
+    timeStopBlocks: Number($("#timeStop")?.value ?? 300),
+  };
   const payload = usePctMode ? {
     bankrollUsd: Number($("#bankroll").value),
     riskPct: Number($("#riskPct").value),
     leverage: Number($("#leverage").value),
     quoteInsideTicks: Number($("#quoteTicks").value),
-    usePct: true
+    usePct: true, ...exitBase
   } : {
     tradeSizeMon: Number($("#fixedSize").value),
     maxPositionMon: Number($("#maxPos").value),
     quoteInsideTicks: Number($("#quoteTicks").value),
     bankrollUsd: Number($("#bankroll").value),
     leverage: Number($("#leverage").value),
-    usePct: false
+    usePct: false, ...exitBase
   };
   try{
     const res = await fetch(API+"/api/risk", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(payload)});
     const j = await res.json();
     if(j.ok){
       riskCfg = j.risk;
-      $("#riskStatus").textContent = `✅ saved: ${j.risk.riskPct}% * ${j.risk.leverage}x • ${j.risk.tradeSizeMon} MON`;
+      $("#riskStatus").textContent = `✅ saved: ${j.risk.riskPct}% * ${j.risk.leverage}x • SL ${j.risk.stopLossPct}% TP ${j.risk.takeProfitPct}%`;
       $("#riskStatus").style.color = "var(--green)";
       localStorage.setItem("riskCfg", JSON.stringify(j.risk));
-      btn.textContent = `✅ SAVED — ${j.risk.tradeSizeMon} MON/trade LIVE`;
+      btn.textContent = `✅ SAVED — ${j.risk.tradeSizeMon} MON • SL/TP LIVE`;
       setTimeout(()=> calcPreview(), 1500);
     } else throw new Error(j.error);
   }catch(e){
@@ -579,7 +648,7 @@ async function saveRisk(){
   } finally { btn.disabled = false; setTimeout(()=> calcPreview(), 2000); }
 }
 // bind live preview
-["bankroll","riskPct","leverage","quoteTicks","fixedSize","maxPos"].forEach(id=>{
+["bankroll","riskPct","leverage","quoteTicks","fixedSize","maxPos","stopLoss","takeProfit","trailing","timeStop"].forEach(id=>{
   document.addEventListener("input", (e)=>{ if(e.target.id===id) calcPreview(); });
 });
 document.addEventListener("input", (e)=>{

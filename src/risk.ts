@@ -10,6 +10,11 @@ export interface RiskConfig {
   maxPositionMon: number;
   quoteInsideTicks: number;
   usePct: boolean; // true = pct mode, false = fixed MON mode
+  // --- EXIT STRATEGY ---
+  stopLossPct: number; // e.g., 3 = exit if position -3% from entry
+  takeProfitPct: number; // e.g., 6 = exit if +6% from entry (RR 2)
+  trailingPct: number; // 0 = off, else trailing retracement % (e.g., 1.5)
+  timeStopBlocks: number; // 0 = off, else max blocks to hold (e.g., 300 = 90s)
   updatedAt?: number;
 }
 
@@ -32,7 +37,11 @@ function compute(cfg: Partial<RiskConfig>, mid = 0.0289): RiskConfig {
   const effectiveRiskUsd = bankrollUsd * riskPct / 100;
   const tradeSizeMon = usePct ? clamp(Math.round((effectiveRiskUsd / mid) * leverage), 200, 10000) : clamp(Math.round(Number(cfg.tradeSizeMon ?? config.tradeSizeMon)), 200, 10000);
   const maxPositionMon = usePct ? clamp(Math.round(tradeSizeMon * 5), tradeSizeMon, 20000) : clamp(Math.round(Number(cfg.maxPositionMon ?? config.maxPositionMon)), tradeSizeMon, 20000);
-  return { bankrollUsd: Math.round(bankrollUsd), riskPct, riskUsd: Math.round(effectiveRiskUsd * 100) / 100, leverage, tradeSizeMon, maxPositionMon, quoteInsideTicks, usePct, updatedAt: Date.now() };
+  const stopLossPct = clamp(Number(cfg.stopLossPct ?? 3), 0.5, 10);
+  const takeProfitPct = clamp(Number(cfg.takeProfitPct ?? 6), 1, 30);
+  const trailingPct = clamp(Number(cfg.trailingPct ?? 1.5), 0, 5);
+  const timeStopBlocks = clamp(Math.round(Number(cfg.timeStopBlocks ?? 300)), 0, 2000);
+  return { bankrollUsd: Math.round(bankrollUsd), riskPct, riskUsd: Math.round(effectiveRiskUsd * 100) / 100, leverage, tradeSizeMon, maxPositionMon, quoteInsideTicks, usePct, stopLossPct, takeProfitPct, trailingPct, timeStopBlocks, updatedAt: Date.now() };
 }
 
 let current: RiskConfig | null = null;
@@ -56,6 +65,10 @@ export function loadRisk(): RiskConfig {
     maxPositionMon: config.maxPositionMon,
     quoteInsideTicks: config.quoteInsideTicks,
     usePct: true,
+    stopLossPct: 3,
+    takeProfitPct: 6,
+    trailingPct: 1.5,
+    timeStopBlocks: 300,
   });
   syncConfig(current);
   return current;
@@ -98,6 +111,6 @@ export function saveRisk(patch: Partial<RiskConfig>, mid = 0.0289): RiskConfig {
   current = merged;
   syncConfig(merged);
   try { mkdirSync("data", { recursive: true }); writeFileSync(FILE, JSON.stringify(merged, null, 2)); } catch {}
-  console.log(`risk: saved ${merged.riskPct}% * ${merged.leverage}x = ${merged.tradeSizeMon} MON/trade, max ${merged.maxPositionMon}, bankroll $${merged.bankrollUsd}, ticks ${merged.quoteInsideTicks} (${merged.usePct ? "pct" : "fixed"} mode)`);
+  console.log(`risk: saved ${merged.riskPct}% * ${merged.leverage}x = ${merged.tradeSizeMon} MON/trade, max ${merged.maxPositionMon}, bankroll $${merged.bankrollUsd}, ticks ${merged.quoteInsideTicks} SL ${merged.stopLossPct}% TP ${merged.takeProfitPct}% trail ${merged.trailingPct}% time ${merged.timeStopBlocks} (${merged.usePct ? "pct" : "fixed"} mode)`);
   return merged;
 }
