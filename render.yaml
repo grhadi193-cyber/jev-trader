@@ -10,7 +10,11 @@ services:
     autoDeploy: false
     envVars:
       - key: MODEL
-        value: mock
+        value: jev
+      - key: JEV_MODEL_ID
+        value: jev-1.13-free
+      - key: TYPESAFE_AI_BASE_URL
+        value: https://api.beatapi.io/v1
       - key: DRY_RUN
         value: "true"
       - key: PORT
@@ -19,9 +23,7 @@ services:
         value: https://rpc.monad.xyz
       - key: READ_RPC_URL
         value: https://rpc.monad.xyz
-      # For free Jev (BeatAPI) set these in Render dashboard (do NOT commit secret):
-      # - TYPESAFE_AI_API_KEY or BEATAPI_API_KEY = your key from https://jevapi.io
-      # - TYPESAFE_AI_BASE_URL = https://api.beatapi.io/v1
-      # - JEV_MODEL_ID = jev-1.13-free
-      # PRIVATE_KEY is intentionally NOT defined — demo is dry-run only with simulated fills.
-      # Do not add PRIVATE_KEY here.
+      - key: TYPESAFE_AI_API_KEY
+        sync: false
+      # PRIVATE_KEY is intentionally NOT defined — demo is dry-run only (beatapi.io free Jev, no balance needed)
+      # Add BEATAPI_API_KEY alias also works. Do not add PRIVATE_KEY here.

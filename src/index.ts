@@ -7,16 +7,16 @@ import { log10 } from "./book";
 import { startServer } from "./server";
 
 // DEMO DEPLOY GUARD: never allow real transactions in this demo branch.
-// If PRIVATE_KEY is set, refuse to start and force dry-run. MODEL=mock is expected.
+// If PRIVATE_KEY is set, refuse to start — demo is dry-run only (beatapi.io free Jev or mock).
 if (process.env.PRIVATE_KEY && process.env.PRIVATE_KEY.trim() !== "") {
   console.error(
     "DEMO GUARD: PRIVATE_KEY is set — refusing to start in demo/dry-run mode. " +
-      "This deployment is dry-run only (MODEL=mock, simulated fills). Unset PRIVATE_KEY and retry.",
+      "This deployment is dry-run only (beatapi.io jev-1.13-free or mock, simulated fills). Unset PRIVATE_KEY and retry.",
   );
   process.exit(1);
 }
-if (config.model !== "mock") {
-  console.warn(`DEMO GUARD: MODEL=${config.model} — expected MODEL=mock for demo. Forcing mock behavior.`);
+if (config.model === "jev" && !config.jevApiKey) {
+  console.warn("DEMO GUARD: MODEL=jev but no TYPESAFE_AI_API_KEY/BEATAPI_API_KEY set — Jev will fail, will fallback to errors. Set key from https://jevapi.io for free jev-1.13-free.");
 }
 
 const market = new Market();
