@@ -18,6 +18,7 @@ export function startServer(meta: Meta, history: () => BlockEvent[]) {
 
   Bun.serve({
     port: config.port,
+    hostname: "0.0.0.0",
     fetch(req) {
       const { pathname } = new URL(req.url);
       if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
